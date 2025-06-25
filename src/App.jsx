@@ -1843,10 +1843,15 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
               {setupStep === 1 && (
                 <Stack spacing={3}>
                   <Typography>
-                    1. Scan this QR code with your authenticator app (Google Authenticator, Authy, Okta Verify, etc.):
+                    1. Scan this QR code with your authenticator app:
                   </Typography>
-                  <Box sx={{ textAlign: 'center' }}>
-                    <img src={twoFactorQRCode} alt="QR Code" style={{ maxWidth: '200px' }} />
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    <Typography variant="body2">
+                      <strong>Recommended apps:</strong> Okta Verify, Google Authenticator, Authy, Microsoft Authenticator
+                    </Typography>
+                  </Alert>
+                  <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'background.paper', borderRadius: 2 }}>
+                    <img src={twoFactorQRCode} alt="QR Code" style={{ maxWidth: '256px', width: '100%' }} />
                   </Box>
                   <Typography variant="body2" color="text.secondary">
                     If scanning doesn't work, manually enter this secret in your authenticator app:
@@ -1871,23 +1876,41 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
                   <Alert severity="info">
                     <Typography variant="body2">
                       <strong>Manual Setup Instructions:</strong><br/>
-                      • App/Issuer: PasswordManager<br/>
-                      • Account: user<br/>
-                      • Secret: {twoFactorSecret}<br/>
-                      • Algorithm: SHA1 (default)<br/>
-                      • Digits: 6 (default)<br/>
-                      • Period: 30 seconds (default)
+                      • Issuer/App Name: Password Manager<br/>
+                      • Account Name: user<br/>
+                      • Secret Key: {twoFactorSecret}<br/>
+                      • Algorithm: SHA1<br/>
+                      • Digits: 6<br/>
+                      • Time Period: 30 seconds
                     </Typography>
                   </Alert>
                   <Alert severity="warning">
                     <Typography variant="body2">
-                      <strong>If QR scanning fails:</strong><br/>
-                      1. Copy the secret above<br/>
-                      2. In Okta Verify: Add Account → Enter manually<br/>
-                      3. Use "PasswordManager" as the app name<br/>
-                      4. Paste the secret and save
+                      <strong>For Okta Verify users:</strong><br/>
+                      1. Open Okta Verify app<br/>
+                      2. Tap "Add Account" → "Company" → "Other"<br/>
+                      3. If QR scan fails, tap "Can't scan?" → "Enter manually"<br/>
+                      4. Enter: Account name: "Password Manager", Key: {twoFactorSecret.substring(0, 8)}...<br/>
+                      5. Save and verify the 6-digit code works
                     </Typography>
                   </Alert>
+                  <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 2, mt: 2 }}>
+                    <Typography variant="body2" gutterBottom>
+                      <strong>Test your setup:</strong> After adding to your authenticator app, verify it shows a 6-digit code that updates every 30 seconds.
+                    </Typography>
+                    <Button 
+                      variant="outlined" 
+                      size="small"
+                      onClick={async () => {
+                        const currentCode = await generateCurrentTOTP(twoFactorSecret);
+                        if (currentCode) {
+                          alert(`Current expected code: ${currentCode}\n\nThis should match the code in your Okta Verify app right now.`);
+                        }
+                      }}
+                    >
+                      Show Current Expected Code
+                    </Button>
+                  </Box>
                   <Button variant="contained" onClick={() => setSetupStep(2)}>
                     Next: Backup Codes
                   </Button>
@@ -1932,6 +1955,11 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
                 <Typography>
                   Enter the 6-digit code from your authenticator app:
                 </Typography>
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  <Typography variant="body2">
+                    The code in your Okta Verify app changes every 30 seconds. Make sure to enter the current code.
+                  </Typography>
+                </Alert>
                 <TextField
                   label="2FA Code"
                   value={twoFactorToken}
@@ -1939,6 +1967,7 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
                   fullWidth
                   autoFocus
                   inputProps={{ maxLength: 6 }}
+                  helperText="Enter all 6 digits without spaces"
                 />
                 <Button variant="contained" onClick={handle2FAVerification}>
                   Verify

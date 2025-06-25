@@ -166,27 +166,44 @@ function generateTOTPCode(secret, time) {
 
 // 2FA Functions
 export function generateTOTPSecret() {
-  // Generate a base32-encoded secret (32 characters)
+  // Generate a base32-encoded secret (32 characters for 160-bit entropy)
+  // This is the standard length that Okta Verify and other authenticators expect
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   let secret = '';
-  const array = new Uint8Array(20);
+  const array = new Uint8Array(20); // 160 bits
   window.crypto.getRandomValues(array);
+  
+  // Convert to base32
   for (let i = 0; i < 20; i++) {
     secret += chars[array[i] % chars.length];
   }
-  return secret;
+  
+  // Ensure exactly 32 characters (standard TOTP secret length)
+  while (secret.length < 32) {
+    secret += chars[Math.floor(Math.random() * chars.length)];
+  }
+  
+  return secret.substring(0, 32);
 }
 
 export function generateTOTPQRCode(secret, email = 'user') {
-  // Use a simpler, more compatible format
-  const otpauth = `otpauth://totp/PasswordManager:${email}?secret=${secret}&issuer=PasswordManager`;
+  // Use Okta-optimized format with explicit parameters
+  const issuer = 'Password Manager';
+  const accountName = `${issuer}:${email}`;
+  
+  // Include all TOTP parameters for better compatibility
+  const otpauth = `otpauth://totp/${encodeURIComponent(accountName)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
   
   return QRCode.toDataURL(otpauth, {
-    errorCorrectionLevel: 'L',
+    errorCorrectionLevel: 'M', // Medium error correction for better scan reliability
     type: 'image/png',
     quality: 1,
-    margin: 2,
-    width: 200
+    margin: 4, // Larger margin for better scanning
+    width: 256, // Larger size for easier scanning
+    color: {
+      dark: '#000000',
+      light: '#FFFFFF'
+    }
   });
 }
 
