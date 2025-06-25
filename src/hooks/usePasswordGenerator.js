@@ -1,37 +1,38 @@
 import { useState } from 'react';
-import { generatePassword, checkPasswordStrength } from '../services/crypto';
+import { generatePassword as cryptoGeneratePassword } from '../services/crypto';
 
-export const usePasswordGenerator = (defaultOptions = {}) => {
+export const usePasswordGenerator = () => {
   const [genOptions, setGenOptions] = useState({
     length: 16,
     symbols: true,
     numbers: true,
     uppercase: true,
     lowercase: true,
-    ...defaultOptions
   });
-  const [generated, setGenerated] = useState('');
 
-  const handleGenerate = () => {
-    const newPassword = generatePassword(genOptions);
-    setGenerated(newPassword);
-    return newPassword;
+  const generatePassword = (options = genOptions) => {
+    return cryptoGeneratePassword(options);
   };
 
-  const updateOptions = (newOptions) => {
-    setGenOptions(prev => ({ ...prev, ...newOptions }));
+  const updateOption = (key, value) => {
+    setGenOptions(prev => ({ ...prev, [key]: value }));
   };
 
-  const getStrength = (password = generated) => {
-    return checkPasswordStrength(password);
+  const resetOptions = () => {
+    setGenOptions({
+      length: 16,
+      symbols: true,
+      numbers: true,
+      uppercase: true,
+      lowercase: true,
+    });
   };
 
   return {
     genOptions,
-    setGenOptions: updateOptions,
-    generated,
-    setGenerated,
-    handleGenerate,
-    getStrength
+    setGenOptions,
+    generatePassword,
+    updateOption,
+    resetOptions,
   };
 }; 

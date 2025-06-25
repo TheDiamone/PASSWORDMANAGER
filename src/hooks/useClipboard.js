@@ -4,9 +4,11 @@ export const useClipboard = () => {
   const [copyAlert, setCopyAlert] = useState(false);
   const [copyMessage, setCopyMessage] = useState('');
 
-  const copyToClipboard = async (text, message = 'Copied to clipboard!') => {
+  const copyToClipboard = async (message, text = null) => {
     try {
-      await navigator.clipboard.writeText(text);
+      // If text is provided separately, use it; otherwise use message as both message and text
+      const textToCopy = text !== null ? text : message;
+      await navigator.clipboard.writeText(textToCopy);
       setCopyMessage(message);
       setCopyAlert(true);
       return true;
