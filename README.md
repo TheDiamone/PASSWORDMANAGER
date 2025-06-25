@@ -8,11 +8,11 @@ A secure, feature-rich password manager built with Electron, React, and Material
 password-manager/
 ├── package.json               # Dependencies and scripts
 ├── vite.config.js            # Vite build configuration
+├── index.html                # HTML entry point (Vite standard location)
 ├── electron/                 # Electron main process files
 │   ├── main.js              # Electron main process
 │   └── preload.js           # Secure bridge between Electron and browser context
-├── public/                   # Static assets
-│   └── index.html           # HTML entry point
+├── public/                   # Static assets (images, icons, etc.)
 ├── src/                      # Source code
 │   ├── assets/              # Images, icons, etc.
 │   ├── components/          # Reusable UI components
