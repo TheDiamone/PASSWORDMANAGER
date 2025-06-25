@@ -1,7 +1,7 @@
 {
   "name": "password-manager",
   "version": "1.0.0",
-  "main": "main.js",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
