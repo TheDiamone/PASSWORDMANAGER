@@ -49,13 +49,9 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import UploadIcon from '@mui/icons-material/Upload';
 import DownloadIcon from '@mui/icons-material/Download';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
-import SettingsIcon from '@mui/icons-material/Settings';
-import Drawer from '@mui/material/Drawer';
-import ListItemIcon from '@mui/material/ListItemIcon';
+import LockIcon from '@mui/icons-material/Lock';
 
-export default function App({ mode = 'light', setMode }) {
+export default function App() {
   const [masterPassword, setMasterPassword] = useState('');
   const [vault, setVault] = useState([]);
   const [unlocked, setUnlocked] = useState(false);
@@ -119,7 +115,6 @@ export default function App({ mode = 'light', setMode }) {
   const [biometricCredentials, setBiometricCredentials] = useState(null);
   const [showBiometricSetup, setShowBiometricSetup] = useState(false);
   const [biometricSupported, setBiometricSupported] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Check for existing 2FA data when component mounts
   useEffect(() => {
@@ -223,7 +218,12 @@ export default function App({ mode = 'light', setMode }) {
   const handleAutoLock = () => {
     setUnlocked(false);
     setMasterPassword('');
+    setVault([]); // Clear vault data from memory
     setShowAutoLockWarning(false);
+    setShow2FAVerification(false); // Close any open 2FA dialogs
+    setTwoFactorToken(''); // Clear 2FA token
+    setBackupCodeInput(''); // Clear backup code input
+    setUseBackupCode(false); // Reset backup code flag
     setCopyMessage('Vault auto-locked due to inactivity');
     setCopyAlert(true);
   };
@@ -507,6 +507,12 @@ export default function App({ mode = 'light', setMode }) {
 
   const handleImport = async () => {
     if (!importData.trim()) return;
+    
+    // Defensive checks
+    if (!unlocked || !masterPassword) {
+      alert('You must unlock your vault before importing passwords.');
+      return;
+    }
     
     setImporting(true);
     try {
@@ -797,6 +803,11 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
       setBiometricEnabled(true);
       localStorage.setItem('biometricEnabled', 'true');
       
+      // Store master password for biometric authentication
+      if (masterPassword) {
+        localStorage.setItem('biometricMasterPassword', masterPassword);
+      }
+      
       setShowBiometricSetup(false);
       setCopyMessage('Biometric authentication setup complete!');
       setCopyAlert(true);
@@ -887,6 +898,7 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
     setBiometricCredentials(null);
     localStorage.removeItem('biometricCredentials');
     localStorage.removeItem('biometricEnabled');
+    localStorage.removeItem('biometricMasterPassword');
     setCopyMessage('Biometric authentication disabled');
     setCopyAlert(true);
   };
@@ -908,11 +920,23 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
   };
 
   const handleUnlock = async () => {
-    // Try biometric authentication first if enabled
-    if (biometricEnabled && biometricCredentials) {
+    // Try biometric authentication first if enabled and we have a master password
+    if (biometricEnabled && biometricCredentials && masterPassword) {
       const biometricSuccess = await authenticateWithBiometric();
       if (biometricSuccess) {
-        // Biometric authentication successful - unlock without 2FA
+        // Biometric authentication successful - load vault and unlock
+        const vaultData = localStorage.getItem('vault');
+        if (vaultData) {
+          const key = await deriveKey(masterPassword);
+          try {
+            const data = await decryptVault(JSON.parse(vaultData), key);
+            setVault(data);
+          } catch (error) {
+            console.error('Error decrypting vault with biometric:', error);
+            alert('Error loading vault data. Please try again.');
+            return;
+          }
+        }
         setUnlocked(true);
         setCopyMessage('Unlocked with biometric authentication');
         setCopyAlert(true);
@@ -940,28 +964,26 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
       setTwoFactorSecret(twoFactorInfo.secret);
       setBackupCodes(twoFactorInfo.backupCodes || []);
       
-      // Always require 2FA verification if 2FA is enabled
-      console.log('2FA enabled, requiring verification');
-      
-      // If vault exists, decrypt it first
+      // Verify master password first before showing 2FA dialog
       if (vaultData) {
         const key = await deriveKey(masterPassword);
         try {
-          const data = await decryptVault(JSON.parse(vaultData), key);
-          setVault(data);
+          // Test decryption to verify master password is correct
+          await decryptVault(JSON.parse(vaultData), key);
+          console.log('Master password verified, showing 2FA dialog');
         } catch {
-          alert('Wrong password or corrupted vault');
+          alert('Wrong master password');
           return;
         }
       }
       
-      // Show 2FA verification dialog
+      // Show 2FA verification dialog (vault will be loaded after 2FA verification)
       setShow2FAVerification(true);
       console.log('2FA verification dialog should now be visible');
       return;
     }
     
-    // No 2FA enabled
+    // No 2FA enabled - proceed with normal unlock
     console.log('No 2FA data found, unlocking without 2FA');
     setTwoFactorEnabled(false);
     
@@ -981,12 +1003,26 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
   };
 
   const handleAdd = async () => {
-    const newVault = [...vault, entry];
-    const key = await deriveKey(masterPassword);
-    const encrypted = await encryptVault(newVault, key);
-    localStorage.setItem('vault', JSON.stringify(encrypted));
-    setVault(newVault);
-    setEntry({ site: '', user: '', pass: '' });
+    if (!entry.site || !entry.pass) {
+      alert('Please enter at least a site name and password');
+      return;
+    }
+    
+    try {
+      const safeEntry = { ...entry, tags: Array.isArray(entry.tags) ? entry.tags : [] };
+      const newVault = [...vault, safeEntry];
+      const key = await deriveKey(masterPassword);
+      const encrypted = await encryptVault(newVault, key);
+      localStorage.setItem('vault', JSON.stringify(encrypted));
+      setVault(newVault);
+      setEntry({ site: '', user: '', pass: '', category: 'other', tags: [] });
+      
+      setCopyMessage('Password entry added successfully!');
+      setCopyAlert(true);
+    } catch (error) {
+      console.error('Error adding entry:', error);
+      alert('Error saving password entry. Please try again.');
+    }
   };
 
   const handleGenerate = () => {
@@ -1055,6 +1091,8 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
     console.log('- Secret stored:', twoFactorSecret);
     console.log('- Using backup code:', useBackupCode);
     
+    let verificationSuccess = false;
+    
     if (useBackupCode) {
       if (verifyBackupCode(backupCodeInput, backupCodes)) {
         // Update stored backup codes
@@ -1064,29 +1102,52 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
           twoFactorInfo.backupCodes = backupCodes;
           localStorage.setItem('twoFactor', JSON.stringify(twoFactorInfo));
         }
-        setShow2FAVerification(false);
-        setUnlocked(true);
-        // Prompt biometric setup after successful 2FA if supported and not enabled
-        if (biometricSupported && !biometricEnabled) {
-          setShowBiometricSetup(true);
-        }
+        verificationSuccess = true;
       } else {
         alert('Invalid backup code');
+        return;
       }
     } else {
       const isValid = await verifyTOTP(twoFactorToken, twoFactorSecret);
       console.log('- TOTP verification result:', isValid);
       
       if (isValid) {
-        setShow2FAVerification(false);
-        setUnlocked(true);
-        // Prompt biometric setup after successful 2FA if supported and not enabled
-        if (biometricSupported && !biometricEnabled) {
-          setShowBiometricSetup(true);
-        }
+        verificationSuccess = true;
       } else {
         alert('Invalid 2FA code');
+        return;
       }
+    }
+    
+    if (verificationSuccess) {
+      // Load vault data after successful 2FA verification
+      const vaultData = localStorage.getItem('vault');
+      if (vaultData) {
+        const key = await deriveKey(masterPassword);
+        try {
+          const data = await decryptVault(JSON.parse(vaultData), key);
+          setVault(data);
+          console.log('Vault data loaded after 2FA verification');
+        } catch (error) {
+          console.error('Error loading vault after 2FA:', error);
+          alert('Error loading vault data');
+          return;
+        }
+      }
+      
+      setShow2FAVerification(false);
+      setUnlocked(true);
+      setTwoFactorToken(''); // Clear the token
+      setBackupCodeInput(''); // Clear backup code input
+      setUseBackupCode(false); // Reset backup code flag
+      
+      // Prompt biometric setup after successful 2FA if supported and not enabled
+      if (biometricSupported && !biometricEnabled) {
+        setShowBiometricSetup(true);
+      }
+      
+      setCopyMessage('Successfully authenticated with 2FA');
+      setCopyAlert(true);
     }
   };
 
@@ -1121,17 +1182,8 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
 
   return (
     <Container maxWidth="sm" sx={{ mt: 8 }}>
-      <Paper elevation={3} sx={{ p: 4, position: 'relative' }}>
-        {/* Light/Dark Mode Toggle Button */}
-        <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
-          <Tooltip title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
-            <IconButton onClick={setMode} color="inherit" size="large">
-              {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-            </IconButton>
-          </Tooltip>
-        </Box>
-        {/* Main UI */}
-        {!unlocked ? (
+      <Paper elevation={3} sx={{ p: 4 }}>
+      {!unlocked ? (
           <Stack spacing={3} alignItems="center">
             <Typography variant="h5" gutterBottom>
               Enter Master Password
@@ -1158,6 +1210,28 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
                 onClick={async () => {
                   const success = await authenticateWithBiometric();
                   if (success) {
+                    // Load vault data after successful biometric authentication
+                    const vaultData = localStorage.getItem('vault');
+                    if (vaultData) {
+                      // For biometric unlock, we need to retrieve the stored master password
+                      const storedMasterPassword = localStorage.getItem('biometricMasterPassword');
+                      if (storedMasterPassword) {
+                        try {
+                          const key = await deriveKey(storedMasterPassword);
+                          const data = await decryptVault(JSON.parse(vaultData), key);
+                          setVault(data);
+                          setMasterPassword(storedMasterPassword); // Set the master password for session
+                        } catch (error) {
+                          console.error('Error loading vault with biometric:', error);
+                          alert('Error loading vault data. Please use master password.');
+                          return;
+                        }
+                      } else {
+                        alert('Master password not found. Please disable and re-enable biometric authentication.');
+                        disableBiometric();
+                        return;
+                      }
+                    }
                     setUnlocked(true);
                     setCopyMessage('Unlocked with biometric authentication');
                     setCopyAlert(true);
@@ -1197,7 +1271,7 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
             </Button>
           </Stack>
         ) : (
-          <>
+          <Box>
             <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
               <SecurityIcon color={twoFactorEnabled ? "success" : "disabled"} />
               <Typography variant="body2" color="text.secondary">
@@ -1278,6 +1352,14 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
                 >
                   Add Password
                 </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={handleManualLock}
+                  startIcon={<LockIcon />}
+                >
+                  Lock
+                </Button>
               </Box>
             </Box>
             <TextField
@@ -1353,97 +1435,321 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
               )}
               {filteredVault.map((item, idx) => (
                 <React.Fragment key={idx}>
-                  <ListItem alignItems="flex-start" sx={{ flexDirection: 'column', alignItems: 'stretch', mb: 1, border: 1, borderColor: 'divider', borderRadius: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        {item.site}
-                      </Typography>
-                      <Chip
-                        label={getCategoryById(item.category)?.name || 'Other'}
-                        size="small"
-                        sx={{
-                          backgroundColor: getCategoryById(item.category)?.color || '#607D8B',
-                          color: 'white',
-                          fontSize: '0.7rem',
-                          height: 20
-                        }}
-                      />
-                      {item.tags && item.tags.length > 0 && (
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          {item.tags.slice(0, 2).map((tag, tagIndex) => (
-                            <Chip
-                              key={tagIndex}
-                              label={tag}
+                  <ListItem>
+                    {editingIndex === idx ? (
+                      // Edit mode
+                      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 2 }}>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          Editing: {item.site}
+                        </Typography>
+                        <Stack spacing={2}>
+                          <TextField
+                            label="Site"
+                            value={editEntry.site}
+                            onChange={(e) => setEditEntry({ ...editEntry, site: e.target.value })}
+                            fullWidth
+                            size="small"
+                          />
+                          <TextField
+                            label="Username"
+                            value={editEntry.user}
+                            onChange={(e) => setEditEntry({ ...editEntry, user: e.target.value })}
+                            fullWidth
+                            size="small"
+                          />
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Category</InputLabel>
+                            <Select
+                              value={editEntry.category || 'other'}
+                              onChange={(e) => setEditEntry({ ...editEntry, category: e.target.value })}
+                              label="Category"
+                            >
+                              {categories.map((category) => (
+                                <MenuItem key={category.id} value={category.id}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Box
+                                      sx={{
+                                        width: 12,
+                                        height: 12,
+                                        borderRadius: '50%',
+                                        backgroundColor: category.color
+                                      }}
+                                    />
+                                    {category.name}
+                                  </Box>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <TextField
+                            label="Tags (comma separated)"
+                            value={(editEntry.tags || []).join(', ')}
+                            onChange={(e) => setEditEntry({ 
+                              ...editEntry, 
+                              tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)
+                            })}
+                            fullWidth
+                            size="small"
+                            placeholder="e.g., important, personal, work"
+                          />
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                              label="Password"
+                              value={editEntry.pass}
+                              onChange={(e) => setEditEntry({ ...editEntry, pass: e.target.value })}
+                              fullWidth
                               size="small"
-                              variant="outlined"
-                              sx={{ fontSize: '0.6rem', height: 18 }}
+                              type={showEditPassword ? "text" : "password"}
+                              InputProps={{
+                                endAdornment: (
+                                  <InputAdornment position="end">
+                                    <Tooltip title={showEditPassword ? "Hide password" : "Show password"}>
+                                      <IconButton
+                                        onClick={() => setShowEditPassword(!showEditPassword)}
+                                        edge="end"
+                                        size="small"
+                                      >
+                                        {showEditPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                      </IconButton>
+                                    </Tooltip>
+                                  </InputAdornment>
+                                )
+                              }}
                             />
-                          ))}
-                          {item.tags.length > 2 && (
-                            <Typography variant="caption" color="text.secondary">
-                              +{item.tags.length - 2}
-                            </Typography>
+                            <Tooltip title="Generate new password">
+                              <IconButton 
+                                size="small" 
+                                onClick={() => setEditEntry({ ...editEntry, pass: generatePassword(genOptions) })}
+                              >
+                                <ContentCopyIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                          {editEntry.pass && (
+                            <Box sx={{ mt: 1 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                  Strength: {checkPasswordStrength(editEntry.pass).strength}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {checkPasswordStrength(editEntry.pass).score}/{checkPasswordStrength(editEntry.pass).maxScore}
+                                </Typography>
+                              </Box>
+                              <LinearProgress
+                                variant="determinate"
+                                value={(checkPasswordStrength(editEntry.pass).score / checkPasswordStrength(editEntry.pass).maxScore) * 100}
+                                color={checkPasswordStrength(editEntry.pass).color}
+                                sx={{ height: 6, borderRadius: 3 }}
+                              />
+                            </Box>
+                          )}
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button 
+                              variant="contained" 
+                              size="small" 
+                              onClick={handleSaveEdit}
+                              startIcon={<SaveIcon />}
+                            >
+                              Save
+                            </Button>
+                            <Button 
+                              variant="outlined" 
+                              size="small" 
+                              onClick={handleCancelEdit}
+                              startIcon={<CancelIcon />}
+                            >
+                              Cancel
+                            </Button>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    ) : (
+                      // View mode
+                      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                          {item.site}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                          <Chip
+                            label={getCategoryById(item.category)?.name || 'Other'}
+                            size="small"
+                            sx={{
+                              backgroundColor: getCategoryById(item.category)?.color || '#607D8B',
+                              color: 'white',
+                              fontSize: '0.7rem',
+                              height: 20
+                            }}
+                          />
+                          {item.tags && item.tags.length > 0 && (
+                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                              {item.tags.slice(0, 2).map((tag, tagIndex) => (
+                                <Chip
+                                  key={tagIndex}
+                                  label={tag}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ fontSize: '0.6rem', height: 18 }}
+                                />
+                              ))}
+                              {item.tags.length > 2 && (
+                                <Typography variant="caption" color="text.secondary">
+                                  +{item.tags.length - 2}
+                                </Typography>
+                              )}
+                            </Box>
                           )}
                         </Box>
-                      )}
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                      <Typography variant="body2" sx={{ flex: 1 }}>
-                        <strong>User:</strong> {item.user}
-                      </Typography>
-                      <Tooltip title="Copy username">
-                        <IconButton size="small" onClick={() => handleCopyUsername(item.user)}>
-                          <ContentCopyIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" sx={{ flex: 1 }}>
-                        <strong>Pass:</strong> {isPasswordVisible(idx) ? item.pass : '••••••••••••'}
-                      </Typography>
-                      {getBreachStatus(`vault_${idx}`) && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          {getBreachStatus(`vault_${idx}`).breached ? (
-                            <Tooltip title={`Compromised in ${getBreachStatus(`vault_${idx}`).count} data breaches`}>
-                              <WarningIcon color="error" fontSize="small" />
-                            </Tooltip>
-                          ) : (
-                            <Tooltip title="No breaches found">
-                              <CheckCircleIcon color="success" fontSize="small" />
-                            </Tooltip>
-                          )}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                          <Typography variant="body2" sx={{ flex: 1 }}>
+                            <strong>User:</strong> {item.user}
+                          </Typography>
+                          <Tooltip title="Copy username">
+                            <IconButton size="small" onClick={() => handleCopyUsername(item.user)}>
+                              <ContentCopyIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
-                      )}
-                      <Tooltip title={isPasswordVisible(idx) ? "Hide password" : "Show password"}>
-                        <IconButton 
-                          size="small" 
-                          onClick={() => handleTogglePassword(idx)}
-                        >
-                          {isPasswordVisible(idx) ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Copy password">
-                        <IconButton size="small" onClick={() => handleCopyPassword(item.pass)}>
-                          <ContentCopyIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit entry">
-                        <IconButton size="small" onClick={() => handleStartEdit(idx, item)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete entry">
-                        <IconButton size="small" onClick={() => handleDeleteEntry(idx)} color="error">
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" sx={{ flex: 1 }}>
+                            <strong>Pass:</strong> {isPasswordVisible(idx) ? item.pass : '••••••••••••'}
+                          </Typography>
+                          {getBreachStatus(`vault_${idx}`) && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              {getBreachStatus(`vault_${idx}`).breached ? (
+                                <Tooltip title={`Compromised in ${getBreachStatus(`vault_${idx}`).count} data breaches`}>
+                                  <WarningIcon color="error" fontSize="small" />
+                                </Tooltip>
+                              ) : (
+                                <Tooltip title="No breaches found">
+                                  <CheckCircleIcon color="success" fontSize="small" />
+                                </Tooltip>
+                              )}
+                            </Box>
+                          )}
+                          <Tooltip title={isPasswordVisible(idx) ? "Hide password" : "Show password"}>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => handleTogglePassword(idx)}
+                            >
+                              {isPasswordVisible(idx) ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Copy password">
+                            <IconButton size="small" onClick={() => handleCopyPassword(item.pass)}>
+                              <ContentCopyIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Edit entry">
+                            <IconButton size="small" onClick={() => handleStartEdit(idx, item)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete entry">
+                            <IconButton size="small" onClick={() => handleDeleteEntry(idx)} color="error">
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    )}
                   </ListItem>
-                  <Divider component="li" sx={{ my: 1 }} />
+                  {idx < filteredVault.length - 1 && <Divider component="li" />}
                 </React.Fragment>
               ))}
             </List>
-            {/* Password Generator */}
+            <Typography variant="h6" gutterBottom>
+              Add Entry
+            </Typography>
+            <Stack spacing={2} direction="column">
+              <TextField
+                label="Site"
+                value={entry.site}
+                onChange={e => setEntry({ ...entry, site: e.target.value })}
+                fullWidth
+              />
+              <TextField
+                label="User"
+                value={entry.user}
+                onChange={e => setEntry({ ...entry, user: e.target.value })}
+                fullWidth
+              />
+              <FormControl fullWidth>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={entry.category}
+                  onChange={e => setEntry({ ...entry, category: e.target.value })}
+                  label="Category"
+                >
+                  {categories.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            backgroundColor: category.color
+                          }}
+                        />
+                        {category.name}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label="Tags (comma separated)"
+                value={(entry.tags || []).join(', ')}
+                onChange={e => setEntry({ 
+                  ...entry, 
+                  tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag)
+                })}
+                fullWidth
+                placeholder="e.g., important, personal, work"
+              />
+              <TextField
+                label="Password"
+                value={entry.pass}
+                onChange={e => setEntry({ ...entry, pass: e.target.value })}
+                fullWidth
+                type={showAddPassword ? "text" : "password"}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Tooltip title={showAddPassword ? "Hide password" : "Show password"}>
+                        <IconButton
+                          onClick={() => setShowAddPassword(!showAddPassword)}
+                          edge="end"
+                        >
+                          {showAddPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                  )
+                }}
+              />
+              {entry.pass && (
+                <Box sx={{ mt: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Strength: {entryStrength.strength}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {entryStrength.score}/{entryStrength.maxScore}
+                    </Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={(entryStrength.score / entryStrength.maxScore) * 100}
+                    color={entryStrength.color}
+                    sx={{ height: 6, borderRadius: 3 }}
+                  />
+                </Box>
+              )}
+              <Button variant="contained" color="primary" onClick={handleAdd} fullWidth>
+                Add
+              </Button>
+            </Stack>
             <Typography variant="h6" gutterBottom>Password Generator</Typography>
             <Stack spacing={2} direction="column" sx={{ mb: 4 }}>
               <Box display="flex" alignItems="center">
@@ -1516,7 +1822,12 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
                 <Button variant="contained" onClick={handleUseGenerated} disabled={!generated}>Use</Button>
               </Stack>
             </Stack>
-          </>
+            <Snackbar open={copyAlert} autoHideDuration={2000} onClose={() => setCopyAlert(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+              <Alert severity="success" sx={{ width: '100%' }}>
+                {copyMessage}
+              </Alert>
+            </Snackbar>
+          </Box>
         )}
       </Paper>
 
@@ -1645,9 +1956,9 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
                 <Button variant="text" onClick={() => setUseBackupCode(true)}>
                   Use Backup Code Instead
                 </Button>
-              </>
-            ) : (
-              <>
+        </>
+      ) : (
+        <>
                 <Typography>
                   Enter one of your backup codes:
                 </Typography>
@@ -2031,8 +2342,8 @@ amazon.com,myemail@amazon.com,AmazonPass789,shopping,online`;
                 >
                   Debug Biometric Info
                 </Button>
-              </>
-            )}
+        </>
+      )}
           </Stack>
         </DialogContent>
         <DialogActions>
