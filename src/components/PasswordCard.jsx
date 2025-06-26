@@ -50,7 +50,7 @@ const PasswordCard = ({
 
   const category = getCategoryById(entry.category);
   const breachStatus = getBreachStatus(entry.id);
-  const passwordStrength = checkPasswordStrength(entry.password || '');
+  const passwordStrength = checkPasswordStrength(entry.pass || '');
 
   const getCategoryIcon = (categoryId) => {
     const iconProps = { 
@@ -72,13 +72,13 @@ const PasswordCard = ({
   };
 
   const getPasswordDisplay = () => {
-    if (!entry.password) {
+    if (!entry.pass) {
       return '••••••••';
     }
     if (isPasswordVisible) {
-      return entry.password;
+      return entry.pass;
     }
-    return '•'.repeat(Math.min(entry.password.length, 12));
+    return '•'.repeat(Math.min(entry.pass.length, 12));
   };
 
   const getStrengthColor = (strength) => {
@@ -102,8 +102,8 @@ const PasswordCard = ({
   };
 
   const handleCopyPassword = () => {
-    if (entry.password) {
-      copyToClipboard('Password copied!', entry.password);
+    if (entry.pass) {
+      copyToClipboard('Password copied!', entry.pass);
     }
   };
 
