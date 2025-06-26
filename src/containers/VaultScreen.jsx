@@ -25,6 +25,7 @@ import AddPasswordDialog from '../components/AddPasswordDialog';
 import ImportExportDialogs from '../components/ImportExportDialogs';
 import SecurityStatus from '../components/SecurityStatus';
 import AdminSidebar from '../components/AdminSidebar';
+import ThemeToggle from '../components/ThemeToggle';
 
 const VaultScreen = () => {
   const { handleManualLock } = useAuth();
@@ -72,6 +73,7 @@ const VaultScreen = () => {
           >
             Lock
           </Button>
+          <ThemeToggle variant="button" />
           <Tooltip title="Account Settings">
             <IconButton
               onClick={() => setShowAdminSidebar(true)}

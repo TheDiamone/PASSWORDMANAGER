@@ -32,10 +32,14 @@ import {
   ExpandMore,
   Lock as LockIcon,
   VpnKey as VpnKeyIcon,
-  Backup as BackupIcon
+  Backup as BackupIcon,
+  Palette as PaletteIcon,
+  DarkMode as DarkModeIcon,
+  LightMode as LightModeIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { useVault } from '../context/VaultContext';
+import { useTheme } from '../context/ThemeContext';
 import { useClipboard } from '../hooks/useClipboard';
 import TwoFactorSetupDialog from './TwoFactorSetupDialog';
 import BiometricSetupDialog from './BiometricSetupDialog';
@@ -53,6 +57,7 @@ const AdminSidebar = ({ open, onClose }) => {
   } = useAuth();
   
   const { vault } = useVault();
+  const { darkMode, toggleTheme } = useTheme();
   const { copyToClipboard } = useClipboard();
   
   // Dialog states
@@ -64,6 +69,7 @@ const AdminSidebar = ({ open, onClose }) => {
   // Expanded sections
   const [expandedSections, setExpandedSections] = useState({
     security: true,
+    ui: false,
     data: false,
     advanced: false
   });
@@ -261,6 +267,53 @@ const AdminSidebar = ({ open, onClose }) => {
                     </ListItemIcon>
                     <ListItemText primary="Lock Vault Now" secondary="Immediately lock and require re-authentication" />
                   </ListItemButton>
+                </Box>
+              </Collapse>
+
+              <Divider />
+
+              {/* UI/Appearance Section */}
+              <ListItemButton onClick={() => toggleSection('ui')}>
+                <ListItemIcon>
+                  <PaletteIcon color="primary" />
+                </ListItemIcon>
+                <ListItemText primary="UI & Appearance" />
+                {expandedSections.ui ? <ExpandLess /> : <ExpandMore />}
+              </ListItemButton>
+              
+              <Collapse in={expandedSections.ui} timeout="auto" unmountOnExit>
+                <Box sx={{ pl: 2, pr: 2, pb: 1 }}>
+                  {/* Theme Toggle */}
+                  <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      {darkMode ? <DarkModeIcon color="primary" fontSize="small" /> : <LightModeIcon color="primary" fontSize="small" />}
+                      <Typography variant="body2" fontWeight="medium">
+                        Theme
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                      Current theme: {darkMode ? 'Dark Mode' : 'Light Mode'}
+                    </Typography>
+                    
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={darkMode}
+                          onChange={toggleTheme}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <LightModeIcon fontSize="small" />
+                          <Typography variant="body2">Dark Mode</Typography>
+                          <DarkModeIcon fontSize="small" />
+                        </Box>
+                      }
+                      labelPlacement="start"
+                      sx={{ width: '100%', justifyContent: 'space-between', mx: 0 }}
+                    />
+                  </Paper>
                 </Box>
               </Collapse>
 

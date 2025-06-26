@@ -1,9 +1,8 @@
 import React from 'react';
-import { ThemeProvider, CssBaseline } from '@mui/material';
 import { Snackbar, Alert } from '@mui/material';
-import { theme } from './theme';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { VaultProvider } from './context/VaultContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { useClipboard } from './hooks/useClipboard';
 import { useAutoLock } from './hooks/useAutoLock';
 import LoginScreen from './containers/LoginScreen';
@@ -43,8 +42,7 @@ const AppContent = () => {
 // Main App component with providers
 export default function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <ThemeProvider>
       <AuthProvider>
         <VaultProvider>
           <AppContent />

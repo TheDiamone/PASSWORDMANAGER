@@ -15,6 +15,7 @@ import { useClipboard } from '../hooks/useClipboard';
 import TwoFactorSetupDialog from '../components/TwoFactorSetupDialog';
 import TwoFactorVerificationDialog from '../components/TwoFactorVerificationDialog';
 import BiometricSetupDialog from '../components/BiometricSetupDialog';
+import ThemeToggle from '../components/ThemeToggle';
 import { deriveKey, decryptVault } from '../services/crypto';
 
 const LoginScreen = () => {
@@ -187,7 +188,12 @@ const LoginScreen = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      {/* Theme Toggle in top right corner */}
+      <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+        <ThemeToggle />
+      </Box>
+      
       <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%' }}>
         <Stack spacing={3} alignItems="center">
           <Typography variant="h5" gutterBottom>
