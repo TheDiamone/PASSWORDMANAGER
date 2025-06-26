@@ -42,6 +42,10 @@ const BiometricSetupDialog = ({ open, onClose }) => {
       const challenge = new Uint8Array(32);
       crypto.getRandomValues(challenge);
 
+      // Generate a unique user ID
+      const userId = new Uint8Array(16);
+      crypto.getRandomValues(userId);
+
       console.log('Creating public key options for registration...');
       const publicKeyOptions = {
         challenge: challenge,
@@ -50,18 +54,26 @@ const BiometricSetupDialog = ({ open, onClose }) => {
           id: window.location.hostname
         },
         user: {
-          id: new Uint8Array(16),
+          id: userId,
           name: "user@passwordmanager.local",
           displayName: "Password Manager User"
         },
-        pubKeyCredParams: [{
-          type: "public-key",
-          alg: -7 // ES256
-        }],
+        pubKeyCredParams: [
+          {
+            type: "public-key",
+            alg: -7 // ES256
+          },
+          {
+            type: "public-key", 
+            alg: -257 // RS256
+          }
+        ],
         authenticatorSelection: {
           authenticatorAttachment: "platform",
-          userVerification: "required"
+          userVerification: "required",
+          residentKey: "preferred"
         },
+        attestation: "none",
         timeout: 60000
       };
 

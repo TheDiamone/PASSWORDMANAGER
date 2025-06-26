@@ -109,10 +109,12 @@ const PasswordGenerator = ({ onGenerate, showUseButton = false }) => {
             readOnly: true,
             endAdornment: (
               <InputAdornment position="end">
-                <Tooltip title="Copy">
-                  <IconButton onClick={handleCopy} disabled={!generated}>
-                    <ContentCopyIcon />
-                  </IconButton>
+                <Tooltip title={generated ? "Copy" : "Generate a password first"}>
+                  <span>
+                    <IconButton onClick={handleCopy} disabled={!generated}>
+                      <ContentCopyIcon />
+                    </IconButton>
+                  </span>
                 </Tooltip>
               </InputAdornment>
             )
