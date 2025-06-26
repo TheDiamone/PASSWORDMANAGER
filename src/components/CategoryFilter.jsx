@@ -3,15 +3,18 @@ import {
   Box,
   Typography,
   Button,
-  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  Stack
+  Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useVault } from '../context/VaultContext';
 
 const CategoryFilter = () => {
@@ -62,15 +65,92 @@ const CategoryFilter = () => {
     setEditingCategory(null);
   };
 
+  // Sort categories alphabetically, but keep "All" first and "Other" last
+  const sortedCategories = [...categories].sort((a, b) => {
+    if (a.id === 'other') return 1;
+    if (b.id === 'other') return -1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const getSelectedCategoryName = () => {
+    if (selectedCategory === 'all') return 'All Categories';
+    const category = categories.find(c => c.id === selectedCategory);
+    return category ? category.name : 'All Categories';
+  };
+
   return (
     <>
       <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Categories:
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+          <FormControl variant="outlined" size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>Category Filter</InputLabel>
+            <Select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              label="Category Filter"
+            >
+              <MenuItem value="all">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box
+                    sx={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      backgroundColor: '#2196F3'
+                    }}
+                  />
+                  All Categories
+                </Box>
+              </MenuItem>
+              {sortedCategories.map((category) => (
+                <MenuItem 
+                  key={category.id} 
+                  value={category.id}
+                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                    <Box
+                      sx={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        backgroundColor: category.color
+                      }}
+                    />
+                    {category.name}
+                  </Box>
+                  {category.id !== 'other' && (
+                    <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
+                      <Button
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditCategory(category);
+                        }}
+                        sx={{ minWidth: 'auto', p: 0.5 }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </Button>
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCategory(category.id);
+                        }}
+                        sx={{ minWidth: 'auto', p: 0.5 }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </Button>
+                    </Box>
+                  )}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
           <Button 
-            variant="text" 
+            variant="outlined" 
             size="small" 
             onClick={handleAddCategory}
             startIcon={<AddIcon />}
@@ -78,34 +158,10 @@ const CategoryFilter = () => {
             Add Category
           </Button>
         </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          <Chip
-            label="All"
-            onClick={() => setSelectedCategory('all')}
-            color={selectedCategory === 'all' ? 'primary' : 'default'}
-            variant={selectedCategory === 'all' ? 'filled' : 'outlined'}
-            size="small"
-          />
-          {categories.map((category) => (
-            <Chip
-              key={category.id}
-              label={category.name}
-              onClick={() => setSelectedCategory(category.id)}
-              color={selectedCategory === category.id ? 'primary' : 'default'}
-              variant={selectedCategory === category.id ? 'filled' : 'outlined'}
-              size="small"
-              sx={{
-                borderColor: category.color,
-                '&.MuiChip-colorPrimary': {
-                  backgroundColor: category.color,
-                  color: 'white'
-                }
-              }}
-              onDelete={category.id !== 'other' ? () => handleDeleteCategory(category.id) : undefined}
-              deleteIcon={category.id !== 'other' ? <DeleteIcon /> : undefined}
-            />
-          ))}
-        </Box>
+        
+        <Typography variant="caption" color="text.secondary">
+          Showing: {getSelectedCategoryName()}
+        </Typography>
       </Box>
 
       {/* Category Management Dialog */}
