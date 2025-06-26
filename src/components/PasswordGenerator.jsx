@@ -26,9 +26,7 @@ const PasswordGenerator = ({ onGenerate, showUseButton = false }) => {
   const handleGenerate = () => {
     const newPassword = generatePassword(genOptions);
     setGenerated(newPassword);
-    if (onGenerate) {
-      onGenerate(newPassword);
-    }
+    // Don't automatically call onGenerate here - let user decide when to use the password
   };
 
   const handleCopy = () => {
