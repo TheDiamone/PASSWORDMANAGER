@@ -159,11 +159,18 @@ export const VaultProvider = ({ children }) => {
        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))))
   );
 
+  // Compute breached passwords from breach results
+  const breachedPasswords = vault.filter(item => {
+    const breach = breachResults[item.id];
+    return breach && breach.found;
+  });
+
   const value = {
     // Vault data
     vault,
     setVault,
     filteredVault,
+    breachedPasswords,
     
     // Search and filtering
     search,

@@ -6,7 +6,9 @@ import {
   Typography,
   TextField,
   Alert,
-  Paper
+  Paper,
+  CssBaseline,
+  Container
 } from '@mui/material';
 import { Security as SecurityIcon, Fingerprint as FingerprintIcon } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
@@ -188,13 +190,26 @@ const LoginScreen = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <CssBaseline />
+      
       {/* Theme Toggle in top right corner */}
-      <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+      <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1000 }}>
         <ThemeToggle />
       </Box>
       
-      <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%' }}>
+      {/* Main Content */}
+      <Container 
+        maxWidth="sm" 
+        sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          py: 3
+        }}
+      >
+        <Paper elevation={3} sx={{ p: 4, width: '100%', maxWidth: 400 }}>
         <Stack spacing={3} alignItems="center">
           <Typography variant="h5" gutterBottom>
             Enter Master Password
@@ -284,7 +299,8 @@ const LoginScreen = () => {
             </Button>
           )}
         </Stack>
-      </Paper>
+        </Paper>
+      </Container>
 
       <TwoFactorSetupDialog 
         open={show2FASetup}

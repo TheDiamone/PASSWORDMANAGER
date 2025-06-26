@@ -1,137 +1,85 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Button,
-  Container,
-  Typography,
-  TextField,
-  Paper,
-  Stack,
-  IconButton,
-  Tooltip
+  CssBaseline
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Upload as UploadIcon,
-  Download as DownloadIcon,
-  Lock as LockIcon,
-  Settings as SettingsIcon
-} from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
 import { useVault } from '../context/VaultContext';
-import VaultList from '../components/VaultList';
-import CategoryFilter from '../components/CategoryFilter';
+import AppBar from '../components/AppBar';
+import Navigation from '../components/Navigation';
+import VaultTab from '../components/tabs/VaultTab';
+import SecurityTab from '../components/tabs/SecurityTab';
+import GeneratorTab from '../components/tabs/GeneratorTab';
+import ImportExportTab from '../components/tabs/ImportExportTab';
 import AddPasswordDialog from '../components/AddPasswordDialog';
-import ImportExportDialogs from '../components/ImportExportDialogs';
-import SecurityStatus from '../components/SecurityStatus';
 import AdminSidebar from '../components/AdminSidebar';
-import ThemeToggle from '../components/ThemeToggle';
 
 const VaultScreen = () => {
-  const { handleManualLock } = useAuth();
-  const { search, setSearch, filteredVault } = useVault();
+  const { filteredVault } = useVault();
   
+  const [currentTab, setCurrentTab] = useState('vault');
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showImportDialog, setShowImportDialog] = useState(false);
-  const [showExportDialog, setShowExportDialog] = useState(false);
   const [showAdminSidebar, setShowAdminSidebar] = useState(false);
 
+  const handleTabChange = (newTab) => {
+    setCurrentTab(newTab);
+  };
+
+  const handleAddPassword = () => {
+    setShowAddDialog(true);
+  };
+
+  const handleOpenSettings = () => {
+    setShowAdminSidebar(true);
+  };
+
+  const renderTabContent = () => {
+    switch (currentTab) {
+      case 'vault':
+        return <VaultTab onAddPassword={handleAddPassword} />;
+      case 'security':
+        return <SecurityTab />;
+      case 'generator':
+        return <GeneratorTab />;
+      case 'import-export':
+        return <ImportExportTab />;
+      default:
+        return <VaultTab onAddPassword={handleAddPassword} />;
+    }
+  };
+
   return (
-    <Container maxWidth="lg" sx={{ py: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" component="h1">
-          Password Vault
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Button
-            variant="outlined"
-            onClick={() => setShowImportDialog(true)}
-            startIcon={<UploadIcon />}
-          >
-            Import
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={() => setShowExportDialog(true)}
-            startIcon={<DownloadIcon />}
-          >
-            Export
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => setShowAddDialog(true)}
-            startIcon={<AddIcon />}
-          >
-            Add Password
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={handleManualLock}
-            startIcon={<LockIcon />}
-          >
-            Lock
-          </Button>
-          <ThemeToggle variant="button" />
-          <Tooltip title="Account Settings">
-            <IconButton
-              onClick={() => setShowAdminSidebar(true)}
-              sx={{ 
-                border: 1, 
-                borderColor: 'primary.main', 
-                color: 'primary.main',
-                '&:hover': {
-                  bgcolor: 'primary.light',
-                  color: 'primary.contrastText'
-                }
-              }}
-            >
-              <SettingsIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <CssBaseline />
+      
+      {/* App Bar */}
+      <AppBar onOpenSettings={handleOpenSettings} />
+      
+      {/* Navigation Tabs */}
+      <Navigation currentTab={currentTab} onTabChange={handleTabChange} />
+      
+      {/* Main Content Area */}
+      <Box 
+        component="main" 
+        sx={{ 
+          flexGrow: 1,
+          bgcolor: 'background.default',
+          minHeight: 'calc(100vh - 112px)' // AppBar (64px) + Navigation (48px)
+        }}
+      >
+        {renderTabContent()}
       </Box>
-
-      {/* Search and Filter */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Stack spacing={2}>
-          <TextField
-            label="Search passwords..."
-            variant="outlined"
-            fullWidth
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by site, username, category, or tags..."
-          />
-          <CategoryFilter />
-        </Stack>
-      </Paper>
-
-      {/* Security Status */}
-      <SecurityStatus />
-
-      {/* Vault List */}
-      <VaultList />
 
       {/* Dialogs */}
       <AddPasswordDialog
         open={showAddDialog}
         onClose={() => setShowAddDialog(false)}
       />
-      
-      <ImportExportDialogs
-        showImport={showImportDialog}
-        showExport={showExportDialog}
-        onCloseImport={() => setShowImportDialog(false)}
-        onCloseExport={() => setShowExportDialog(false)}
-      />
 
       <AdminSidebar
         open={showAdminSidebar}
         onClose={() => setShowAdminSidebar(false)}
       />
-    </Container>
+    </Box>
   );
 };
 

@@ -309,6 +309,9 @@ export const lightTheme = createTheme({
       dark: colors.error[700],
       contrastText: '#ffffff',
     },
+    neutral: {
+      ...colors.neutral
+    },
     background: {
       default: '#fafbfc',
       paper: '#ffffff',
@@ -386,6 +389,9 @@ export const darkTheme = createTheme({
       light: colors.error[300],
       dark: colors.error[600],
       contrastText: '#000000',
+    },
+    neutral: {
+      ...colors.neutral
     },
     background: {
       default: '#0a0e13',
