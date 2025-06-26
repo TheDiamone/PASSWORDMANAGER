@@ -6,7 +6,6 @@ import {
   TextField,
   Stack,
   Typography,
-  Button,
   Fab,
   useTheme,
   useMediaQuery
@@ -15,12 +14,13 @@ import {
   Add as AddIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
+import ActionButton from '../ActionButton';
 import { useVault } from '../../context/VaultContext';
 import VaultList from '../VaultList';
 import CategoryFilter from '../CategoryFilter';
 import ViewToggle from '../ViewToggle';
 
-const VaultTab = ({ onAddPassword }) => {
+const VaultTab = ({ onAddPassword, onEditPassword }) => {
   const { search, setSearch, filteredVault, viewMode, handleViewModeChange } = useVault();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -87,19 +87,19 @@ const VaultTab = ({ onAddPassword }) => {
               Password Vault
             </Typography>
             {!isMobile && (
-              <Button
+              <ActionButton
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={onAddPassword}
-                sx={{ borderRadius: 2 }}
+                tooltip="Add a new password entry"
               >
                 Add Password
-              </Button>
+              </ActionButton>
             )}
           </Box>
         </Box>
         
-        <VaultList />
+        <VaultList onEditPassword={onEditPassword} />
       </Paper>
 
       {/* Mobile FAB */}

@@ -18,9 +18,10 @@ import { useVault } from '../context/VaultContext';
 import CategorySection from './CategorySection';
 import ViewToggle from './ViewToggle';
 
-const VaultList = () => {
+const VaultList = ({ onEditPassword }) => {
   const { 
     filteredVault, 
+    vault,
     categories, 
     getCategoryById, 
     viewMode, 
@@ -33,7 +34,6 @@ const VaultList = () => {
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [editingIndex, setEditingIndex] = useState(null);
 
   // Group entries by category
   const groupedEntries = categories.reduce((acc, category) => {
@@ -54,23 +54,35 @@ const VaultList = () => {
   
   if (uncategorizedEntries.length > 0) {
     groupedEntries['other'] = {
-             category: { id: 'other', name: 'Other', color: theme.palette.neutral[500] },
+      category: { id: 'other', name: 'Other', color: theme.palette.neutral?.[500] || '#607D8B' },
       entries: uncategorizedEntries
     };
   }
 
-  const handleEdit = (index) => {
-    setEditingIndex(index);
-    // TODO: Open edit dialog
-    console.log('Edit entry at index:', index);
+  const handleEdit = (localIndex, categoryEntries) => {
+    // Find the global index for this entry
+    const entry = categoryEntries[localIndex];
+    if (entry && entry.id) {
+      const globalIndex = vault.findIndex(vaultEntry => vaultEntry.id === entry.id);
+      if (globalIndex >= 0 && onEditPassword) {
+        onEditPassword(entry, globalIndex);
+      }
+    }
   };
 
-  const handleDelete = async (index) => {
-    const success = await deleteEntry(index);
-    if (success) {
-      console.log('Entry deleted successfully');
-    } else {
-      console.error('Failed to delete entry');
+  const handleDelete = async (localIndex, categoryEntries) => {
+    // Find the global index for this entry
+    const entry = categoryEntries[localIndex];
+    if (entry && entry.id) {
+      const globalIndex = vault.findIndex(vaultEntry => vaultEntry.id === entry.id);
+      if (globalIndex >= 0) {
+        const success = await deleteEntry(globalIndex);
+        if (success) {
+          console.log('Entry deleted successfully');
+        } else {
+          console.error('Failed to delete entry');
+        }
+      }
     }
   };
 
@@ -132,27 +144,13 @@ const VaultList = () => {
                 category={category}
                 entries={entries}
                 view={viewMode}
-                onEdit={(localIndex) => {
-                  // Find the global index for this entry
-                  const entry = entries[localIndex];
-                  if (entry && entry.id) {
-                    const globalIndex = filteredVault.findIndex(vaultEntry => vaultEntry.id === entry.id);
-                    handleEdit(globalIndex);
-                  }
-                }}
-                onDelete={(localIndex) => {
-                  // Find the global index for this entry
-                  const entry = entries[localIndex];
-                  if (entry && entry.id) {
-                    const globalIndex = filteredVault.findIndex(vaultEntry => vaultEntry.id === entry.id);
-                    handleDelete(globalIndex);
-                  }
-                }}
+                onEdit={(localIndex) => handleEdit(localIndex, entries)}
+                onDelete={(localIndex) => handleDelete(localIndex, entries)}
                 isPasswordVisible={(localIndex) => {
                   // Find the global index for visibility check
                   const entry = entries[localIndex];
                   if (entry && entry.id) {
-                    const globalIndex = filteredVault.findIndex(vaultEntry => vaultEntry.id === entry.id);
+                    const globalIndex = vault.findIndex(vaultEntry => vaultEntry.id === entry.id);
                     return globalIndex >= 0 ? isPasswordVisible(globalIndex) : false;
                   }
                   return false;
@@ -161,7 +159,7 @@ const VaultList = () => {
                   // Find the global index for password toggle
                   const entry = entries[localIndex];
                   if (entry && entry.id) {
-                    const globalIndex = filteredVault.findIndex(vaultEntry => vaultEntry.id === entry.id);
+                    const globalIndex = vault.findIndex(vaultEntry => vaultEntry.id === entry.id);
                     if (globalIndex >= 0) {
                       handleTogglePassword(globalIndex);
                     }

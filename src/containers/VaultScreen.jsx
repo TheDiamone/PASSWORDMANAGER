@@ -19,13 +19,29 @@ const VaultScreen = () => {
   const [currentTab, setCurrentTab] = useState('vault');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showAdminSidebar, setShowAdminSidebar] = useState(false);
+  const [editEntry, setEditEntry] = useState(null);
+  const [editIndex, setEditIndex] = useState(null);
 
   const handleTabChange = (newTab) => {
     setCurrentTab(newTab);
   };
 
   const handleAddPassword = () => {
+    setEditEntry(null);
+    setEditIndex(null);
     setShowAddDialog(true);
+  };
+
+  const handleEditPassword = (entry, index) => {
+    setEditEntry(entry);
+    setEditIndex(index);
+    setShowAddDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setShowAddDialog(false);
+    setEditEntry(null);
+    setEditIndex(null);
   };
 
   const handleOpenSettings = () => {
@@ -35,7 +51,7 @@ const VaultScreen = () => {
   const renderTabContent = () => {
     switch (currentTab) {
       case 'vault':
-        return <VaultTab onAddPassword={handleAddPassword} />;
+        return <VaultTab onAddPassword={handleAddPassword} onEditPassword={handleEditPassword} />;
       case 'security':
         return <SecurityTab />;
       case 'generator':
@@ -43,7 +59,7 @@ const VaultScreen = () => {
       case 'import-export':
         return <ImportExportTab />;
       default:
-        return <VaultTab onAddPassword={handleAddPassword} />;
+        return <VaultTab onAddPassword={handleAddPassword} onEditPassword={handleEditPassword} />;
     }
   };
 
@@ -72,7 +88,9 @@ const VaultScreen = () => {
       {/* Dialogs */}
       <AddPasswordDialog
         open={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
+        onClose={handleCloseDialog}
+        editEntry={editEntry}
+        editIndex={editIndex}
       />
 
       <AdminSidebar

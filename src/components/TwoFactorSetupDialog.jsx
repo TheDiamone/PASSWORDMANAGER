@@ -4,17 +4,22 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   Typography,
   Stack,
   Box,
   TextField,
-  IconButton,
   Tooltip,
   Alert,
   Chip
 } from '@mui/material';
-import { ContentCopy as ContentCopyIcon } from '@mui/icons-material';
+import { 
+  ContentCopy as ContentCopyIcon,
+  NavigateNext as NextIcon,
+  Check as CompleteIcon,
+  Cancel as CancelIcon,
+  Visibility as ShowIcon
+} from '@mui/icons-material';
+import ActionButton from './ActionButton';
 import { useAuth } from '../context/AuthContext';
 import { useClipboard } from '../hooks/useClipboard';
 import { 
@@ -148,11 +153,14 @@ const TwoFactorSetupDialog = ({ open, onClose }) => {
                     fullWidth
                     size="small"
                   />
-                  <Tooltip title="Copy secret">
-                    <IconButton onClick={handleCopySecret}>
-                      <ContentCopyIcon />
-                    </IconButton>
-                  </Tooltip>
+                  <ActionButton
+                    iconOnly
+                    onClick={handleCopySecret}
+                    tooltip="Copy secret to clipboard"
+                    size="small"
+                  >
+                    <ContentCopyIcon />
+                  </ActionButton>
                 </Box>
                 
                 <Alert severity="info">
@@ -182,18 +190,25 @@ const TwoFactorSetupDialog = ({ open, onClose }) => {
                   <Typography variant="body2" gutterBottom>
                     <strong>Test your setup:</strong> After adding to your authenticator app, verify it shows a 6-digit code that updates every 30 seconds.
                   </Typography>
-                  <Button 
+                  <ActionButton 
                     variant="outlined" 
                     size="small"
+                    startIcon={<ShowIcon />}
                     onClick={handleShowCurrentCode}
+                    tooltip="Test that your authenticator app is working correctly"
                   >
                     Show Current Expected Code
-                  </Button>
+                  </ActionButton>
                 </Box>
                 
-                <Button variant="contained" onClick={() => setSetupStep(2)}>
+                <ActionButton 
+                  variant="contained" 
+                  endIcon={<NextIcon />}
+                  onClick={() => setSetupStep(2)}
+                  tooltip="Continue to backup codes setup"
+                >
                   Next: Backup Codes
-                </Button>
+                </ActionButton>
               </Stack>
             )}
             
@@ -209,9 +224,14 @@ const TwoFactorSetupDialog = ({ open, onClose }) => {
                   ))}
                 </Box>
                 
-                <Button variant="outlined" onClick={handleCopyBackupCodes}>
+                <ActionButton 
+                  variant="outlined" 
+                  startIcon={<ContentCopyIcon />}
+                  onClick={handleCopyBackupCodes}
+                  tooltip="Copy all backup codes to clipboard"
+                >
                   Copy All Codes
-                </Button>
+                </ActionButton>
                 
                 <Alert severity="warning">
                   <Typography variant="body2">
@@ -219,16 +239,28 @@ const TwoFactorSetupDialog = ({ open, onClose }) => {
                   </Typography>
                 </Alert>
                 
-                <Button variant="contained" onClick={handle2FAComplete}>
+                <ActionButton 
+                  variant="contained" 
+                  startIcon={<CompleteIcon />}
+                  onClick={handle2FAComplete}
+                  tooltip="Finish two-factor authentication setup"
+                >
                   Complete Setup
-                </Button>
+                </ActionButton>
               </Stack>
             )}
           </>
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
+        <ActionButton 
+          variant="outlined"
+          startIcon={<CancelIcon />}
+          onClick={handleClose}
+          tooltip="Cancel two-factor authentication setup"
+        >
+          Cancel
+        </ActionButton>
       </DialogActions>
     </Dialog>
   );

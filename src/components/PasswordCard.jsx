@@ -5,11 +5,9 @@ import {
   CardActions,
   Typography,
   Box,
-  IconButton,
   Chip,
   Avatar,
   Divider,
-  Tooltip,
   Stack,
   useTheme
 } from '@mui/material';
@@ -28,8 +26,11 @@ import {
   Category as OtherIcon,
   Security as SecurityIcon,
   Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
+import ActionButton from './ActionButton';
+import ActionDropdown from './ActionDropdown';
 import { useVault } from '../context/VaultContext';
 import { useClipboard } from '../hooks/useClipboard';
 import { checkPasswordStrength } from '../services/crypto';
@@ -193,15 +194,15 @@ const PasswordCard = ({
              >
                {entry.user || 'No username'}
              </Typography>
-            <Tooltip title="Copy Username">
-              <IconButton 
-                size="small" 
-                onClick={handleCopyUsername}
-                sx={{ p: 0.5 }}
-              >
-                <CopyIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ActionButton
+              iconOnly
+              size="small"
+              onClick={handleCopyUsername}
+              tooltip="Copy username to clipboard"
+              disabled={!entry.user}
+            >
+              <PersonIcon fontSize="small" />
+            </ActionButton>
           </Box>
         </Box>
 
@@ -222,24 +223,23 @@ const PasswordCard = ({
             >
               {getPasswordDisplay()}
             </Typography>
-            <Tooltip title={isPasswordVisible ? "Hide Password" : "Show Password"}>
-              <IconButton 
-                size="small" 
-                onClick={() => onTogglePassword(index)}
-                sx={{ p: 0.5 }}
-              >
-                {isPasswordVisible ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Copy Password">
-              <IconButton 
-                size="small" 
-                onClick={handleCopyPassword}
-                sx={{ p: 0.5 }}
-              >
-                <CopyIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <ActionButton
+              iconOnly
+              size="small"
+              onClick={() => onTogglePassword(index)}
+              tooltip={isPasswordVisible ? "Hide password" : "Show password"}
+            >
+              {isPasswordVisible ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+            </ActionButton>
+            <ActionButton
+              iconOnly
+              size="small"
+              onClick={handleCopyPassword}
+              tooltip="Copy password to clipboard"
+              disabled={!entry.pass}
+            >
+              <CopyIcon fontSize="small" />
+            </ActionButton>
           </Box>
         </Box>
 
@@ -297,34 +297,57 @@ const PasswordCard = ({
         </Stack>
       </CardContent>
 
-      <CardActions sx={{ justifyContent: 'space-between', px: 2, py: 1 }}>
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Edit Entry">
-            <IconButton 
-              size="small" 
-              onClick={() => onEdit(index)}
-              color="primary"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        <Tooltip title={showConfirmDelete ? "Click again to confirm delete" : "Delete Entry"}>
-          <IconButton 
-            size="small" 
-            onClick={handleDelete}
-            color={showConfirmDelete ? "error" : "default"}
-            sx={{
-              backgroundColor: showConfirmDelete ? 'error.light' : 'transparent',
-              '&:hover': {
-                backgroundColor: showConfirmDelete ? 'error.main' : 'action.hover'
-              }
-            }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+      <CardActions sx={{ justifyContent: 'flex-end', px: 2, py: 1 }}>
+        <ActionDropdown
+          size="small"
+          tooltip="Password entry actions"
+          actions={[
+            {
+              id: 'edit',
+              label: 'Edit Entry',
+              description: 'Modify password details',
+              icon: <EditIcon />,
+              onClick: () => onEdit(index),
+              shortcut: 'E'
+            },
+            {
+              id: 'copy-username',
+              label: 'Copy Username',
+              description: 'Copy username to clipboard',
+              icon: <PersonIcon />,
+              onClick: handleCopyUsername,
+              disabled: !entry.user,
+              shortcut: 'U'
+            },
+            {
+              id: 'copy-password',
+              label: 'Copy Password',
+              description: 'Copy password to clipboard',
+              icon: <CopyIcon />,
+              onClick: handleCopyPassword,
+              disabled: !entry.pass,
+              shortcut: 'P'
+            },
+            {
+              id: 'toggle-visibility',
+              label: isPasswordVisible ? 'Hide Password' : 'Show Password',
+              description: isPasswordVisible ? 'Hide password from view' : 'Show password in clear text',
+              icon: isPasswordVisible ? <VisibilityOffIcon /> : <VisibilityIcon />,
+              onClick: () => onTogglePassword(index),
+              shortcut: 'V'
+            },
+            { divider: true },
+            {
+              id: 'delete',
+              label: showConfirmDelete ? 'Confirm Delete' : 'Delete Entry',
+              description: showConfirmDelete ? 'Click to permanently delete' : 'Remove this password entry',
+              icon: <DeleteIcon />,
+              onClick: handleDelete,
+              color: 'error',
+              shortcut: 'Del'
+            }
+          ]}
+        />
       </CardActions>
     </Card>
   );

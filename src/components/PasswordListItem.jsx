@@ -4,12 +4,10 @@ import {
   ListItemAvatar,
   ListItemText,
   Avatar,
-  IconButton,
   Box,
   Typography,
   Chip,
   Stack,
-  Tooltip,
   Collapse,
   Divider,
   useTheme
@@ -31,8 +29,11 @@ import {
   Category as OtherIcon,
   Security as SecurityIcon,
   Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
+import ActionButton from './ActionButton';
+import ActionDropdown from './ActionDropdown';
 import { useVault } from '../context/VaultContext';
 import { useClipboard } from '../hooks/useClipboard';
 import { checkPasswordStrength } from '../services/crypto';
@@ -212,60 +213,65 @@ const PasswordListItem = ({
 
         {/* Action Buttons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Tooltip title="Copy Username">
-            <IconButton 
-              size="small" 
-              onClick={handleCopyUsername}
-              color="primary"
-            >
-              <CopyIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <ActionButton
+            iconOnly
+            size="small"
+            onClick={() => setExpanded(!expanded)}
+            tooltip={expanded ? "Show less details" : "Show more details"}
+          >
+            {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </ActionButton>
 
-          <Tooltip title={isPasswordVisible ? "Hide Password" : "Show Password"}>
-            <IconButton 
-              size="small" 
-              onClick={() => onTogglePassword(index)}
-              color="primary"
-            >
-              {isPasswordVisible ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Edit Entry">
-            <IconButton 
-              size="small" 
-              onClick={() => onEdit(index)}
-              color="primary"
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title={showConfirmDelete ? "Click again to confirm delete" : "Delete Entry"}>
-            <IconButton 
-              size="small" 
-              onClick={handleDelete}
-              color={showConfirmDelete ? "error" : "default"}
-              sx={{
-                backgroundColor: showConfirmDelete ? 'error.light' : 'transparent',
-                '&:hover': {
-                  backgroundColor: showConfirmDelete ? 'error.main' : 'action.hover'
-                }
-              }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title={expanded ? "Show Less" : "Show More"}>
-            <IconButton 
-              size="small" 
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
+          <ActionDropdown
+            size="small"
+            tooltip="Password entry actions"
+            actions={[
+              {
+                id: 'edit',
+                label: 'Edit Entry',
+                description: 'Modify password details',
+                icon: <EditIcon />,
+                onClick: () => onEdit(index),
+                shortcut: 'E'
+              },
+              {
+                id: 'copy-username',
+                label: 'Copy Username',
+                description: 'Copy username to clipboard',
+                icon: <PersonIcon />,
+                onClick: handleCopyUsername,
+                disabled: !entry.user,
+                shortcut: 'U'
+              },
+              {
+                id: 'copy-password',
+                label: 'Copy Password',
+                description: 'Copy password to clipboard',
+                icon: <CopyIcon />,
+                onClick: handleCopyPassword,
+                disabled: !entry.pass,
+                shortcut: 'P'
+              },
+              {
+                id: 'toggle-visibility',
+                label: isPasswordVisible ? 'Hide Password' : 'Show Password',
+                description: isPasswordVisible ? 'Hide password from view' : 'Show password in clear text',
+                icon: isPasswordVisible ? <VisibilityOffIcon /> : <VisibilityIcon />,
+                onClick: () => onTogglePassword(index),
+                shortcut: 'V'
+              },
+              { divider: true },
+              {
+                id: 'delete',
+                label: showConfirmDelete ? 'Confirm Delete' : 'Delete Entry',
+                description: showConfirmDelete ? 'Click to permanently delete' : 'Remove this password entry',
+                icon: <DeleteIcon />,
+                onClick: handleDelete,
+                color: 'error',
+                shortcut: 'Del'
+              }
+            ]}
+          />
         </Box>
       </ListItem>
 
@@ -299,15 +305,15 @@ const PasswordListItem = ({
               >
                 {getPasswordDisplay()}
               </Typography>
-              <Tooltip title="Copy Password">
-                <IconButton 
-                  size="small" 
-                  onClick={handleCopyPassword}
-                  color="primary"
-                >
-                  <CopyIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <ActionButton
+                iconOnly
+                size="small"
+                onClick={handleCopyPassword}
+                tooltip="Copy password to clipboard"
+                disabled={!entry.pass}
+              >
+                <CopyIcon fontSize="small" />
+              </ActionButton>
             </Box>
           </Box>
 
