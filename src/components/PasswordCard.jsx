@@ -344,7 +344,8 @@ const PasswordCard = ({
               icon: <DeleteIcon />,
               onClick: handleDelete,
               color: 'error',
-              shortcut: 'Del'
+              shortcut: 'Del',
+              keepOpen: !showConfirmDelete
             }
           ]}
         />

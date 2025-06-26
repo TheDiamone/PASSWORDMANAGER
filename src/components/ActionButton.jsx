@@ -32,20 +32,37 @@ const ActionButton = ({
 
   const ButtonComponent = iconOnly ? IconButton : Button;
 
-  const buttonProps = {
-    variant: iconOnly ? undefined : variant,
+  // Separate props for IconButton vs Button
+  const commonProps = {
     color,
     size,
     disabled: disabled || loading,
     onClick,
-    fullWidth: iconOnly ? undefined : fullWidth,
-    sx: buttonSx,
-    ...props
+    sx: buttonSx
   };
 
+  let buttonProps;
+  
   if (iconOnly) {
-    buttonProps.size = size === 'large' ? 'large' : size === 'small' ? 'small' : 'medium';
+    // IconButton specific props - exclude fullWidth, variant, startIcon, endIcon
+    buttonProps = {
+      ...commonProps,
+      // Filter out Button-specific props from ...props
+      ...Object.fromEntries(
+        Object.entries(props).filter(([key]) => 
+          !['variant', 'startIcon', 'endIcon', 'fullWidth'].includes(key)
+        )
+      )
+    };
   } else {
+    // Button specific props
+    buttonProps = {
+      ...commonProps,
+      variant,
+      fullWidth,
+      ...props
+    };
+    
     if (startIcon && !loading) buttonProps.startIcon = startIcon;
     if (endIcon && !loading) buttonProps.endIcon = endIcon;
   }

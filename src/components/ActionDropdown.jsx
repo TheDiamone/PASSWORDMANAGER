@@ -38,7 +38,12 @@ const ActionDropdown = ({
     if (action.onClick && !action.disabled) {
       action.onClick();
     }
-    handleClose();
+    
+    // Only close the dropdown if the action doesn't have a keepOpen flag
+    // This allows confirmation actions to keep the dropdown open
+    if (!action.keepOpen) {
+      handleClose();
+    }
   };
 
   const IconComponent = orientation === 'horizontal' ? MoreHorizIcon : MoreVertIcon;
