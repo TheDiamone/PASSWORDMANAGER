@@ -96,6 +96,12 @@ const LoginScreen = () => {
       return;
     }
     
+    // Check if WebAuthn is supported
+    if (!window.PublicKeyCredential) {
+      alert('WebAuthn is not supported in this browser. Please use your master password.');
+      return;
+    }
+    
     try {
       // Get stored biometric credentials
       const biometricCredentials = localStorage.getItem('biometricCredentials');
@@ -119,13 +125,13 @@ const LoginScreen = () => {
           type: "public-key",
           id: new Uint8Array(credentials.credentialId)
         }],
-        userVerification: "required",
-        timeout: 60000
+        userVerification: "preferred", // Changed from "required" to "preferred" for better compatibility
+        timeout: 30000 // Reduced timeout to 30 seconds for better UX
       };
       
       console.log('Requesting biometric authentication...');
       
-      // Request biometric authentication
+      // Request biometric authentication with better error handling
       const assertion = await navigator.credentials.get({
         publicKey: publicKeyOptions
       });
@@ -146,12 +152,14 @@ const LoginScreen = () => {
           
           console.log('Vault unlocked with biometric authentication - 2FA bypassed');
           
-          // Try to show success message, but don't fail if clipboard doesn't work
-          try {
-            await copyToClipboard('Successfully unlocked with biometric authentication!');
-          } catch (clipboardError) {
-            console.log('Clipboard notification failed, but unlock was successful');
-          }
+          // Show success message with improved error handling
+          setTimeout(async () => {
+            try {
+              await copyToClipboard('Successfully unlocked with biometric authentication!');
+            } catch (clipboardError) {
+              console.log('Clipboard notification failed, but unlock was successful');
+            }
+          }, 100);
           
           return;
         } catch (error) {
@@ -163,12 +171,14 @@ const LoginScreen = () => {
         // No vault data, just unlock
         setUnlocked(true);
         
-        // Try to show success message, but don't fail if clipboard doesn't work
-        try {
-          await copyToClipboard('Successfully unlocked with biometric authentication!');
-        } catch (clipboardError) {
-          console.log('Clipboard notification failed, but unlock was successful');
-        }
+        // Show success message with improved error handling
+        setTimeout(async () => {
+          try {
+            await copyToClipboard('Successfully unlocked with biometric authentication!');
+          } catch (clipboardError) {
+            console.log('Clipboard notification failed, but unlock was successful');
+          }
+        }, 100);
         
         return;
       }
@@ -176,12 +186,20 @@ const LoginScreen = () => {
     } catch (error) {
       console.error('Biometric authentication error:', error);
       
+      // Handle different types of errors gracefully
       if (error.name === 'NotAllowedError') {
-        copyToClipboard('Biometric authentication cancelled or failed.');
+        // User cancelled or timeout occurred
+        console.log('Biometric authentication was cancelled or timed out');
+        // Don't show an error message for user cancellation, it's expected behavior
+        return;
       } else if (error.name === 'NotSupportedError') {
-        alert('Biometric authentication is not supported in this browser.');
+        alert('Biometric authentication is not supported in this browser or device.');
       } else if (error.name === 'SecurityError') {
-        alert('Security error during biometric authentication.');
+        alert('Security error during biometric authentication. Please try again or use your master password.');
+      } else if (error.name === 'InvalidStateError') {
+        alert('Biometric authentication is not properly configured. Please set it up again.');
+      } else if (error.name === 'UnknownError') {
+        alert('Unknown error during biometric authentication. Please use your master password.');
       } else {
         console.error('Full error details:', error);
         alert(`Biometric authentication failed: ${error.message}. Please use your master password instead.`);
