@@ -31,6 +31,11 @@ export const VaultProvider = ({ children }) => {
   const [showAllPasswords, setShowAllPasswords] = useState(false);
   const [visiblePasswords, setVisiblePasswords] = useState(new Set());
 
+  // View preferences
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('vaultViewMode') || 'card';
+  });
+
   // Breach checking state
   const [breachResults, setBreachResults] = useState({});
   const [checkingBreaches, setCheckingBreaches] = useState(false);
@@ -51,7 +56,12 @@ export const VaultProvider = ({ children }) => {
       try {
         const key = await deriveKey(masterPassword);
         const data = await decryptVault(JSON.parse(vaultData), key);
-        setVault(data);
+        // Ensure all entries have IDs
+        const dataWithIds = data.map(entry => ({
+          ...entry,
+          id: entry.id || `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        }));
+        setVault(dataWithIds);
       } catch (error) {
         console.error('Error loading vault:', error);
         setVault([]);
@@ -75,7 +85,11 @@ export const VaultProvider = ({ children }) => {
   };
 
   const addEntry = async (entry) => {
-    const safeEntry = { ...entry, tags: Array.isArray(entry.tags) ? entry.tags : [] };
+    const safeEntry = { 
+      ...entry, 
+      tags: Array.isArray(entry.tags) ? entry.tags : [],
+      id: entry.id || `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    };
     const newVault = [...vault, safeEntry];
     return await saveVault(newVault);
   };
@@ -139,6 +153,11 @@ export const VaultProvider = ({ children }) => {
     setVisiblePasswords(newVisiblePasswords);
   };
 
+  const handleViewModeChange = (newViewMode) => {
+    setViewMode(newViewMode);
+    localStorage.setItem('vaultViewMode', newViewMode);
+  };
+
   const isPasswordVisible = (index) => {
     return showAllPasswords || visiblePasswords.has(index);
   };
@@ -193,6 +212,10 @@ export const VaultProvider = ({ children }) => {
     handleToggleAllPasswords,
     handleTogglePassword,
     isPasswordVisible,
+
+    // View preferences
+    viewMode,
+    handleViewModeChange,
     
     // Breach checking
     breachResults,

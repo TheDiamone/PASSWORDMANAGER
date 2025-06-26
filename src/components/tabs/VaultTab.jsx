@@ -18,9 +18,10 @@ import {
 import { useVault } from '../../context/VaultContext';
 import VaultList from '../VaultList';
 import CategoryFilter from '../CategoryFilter';
+import ViewToggle from '../ViewToggle';
 
 const VaultTab = ({ onAddPassword }) => {
-  const { search, setSearch, filteredVault } = useVault();
+  const { search, setSearch, filteredVault, viewMode, handleViewModeChange } = useVault();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -57,7 +58,10 @@ const VaultTab = ({ onAddPassword }) => {
             }}
           />
           
-          <CategoryFilter />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <CategoryFilter />
+            <ViewToggle view={viewMode} onViewChange={handleViewModeChange} />
+          </Box>
           
           {search && (
             <Typography variant="body2" color="text.secondary">
