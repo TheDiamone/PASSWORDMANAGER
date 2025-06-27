@@ -379,7 +379,7 @@ const PasswordCard = ({
       <PasswordHistoryDialog
         open={showHistoryDialog}
         onClose={() => setShowHistoryDialog(false)}
-        entryIndex={index}
+        entryIndex={getGlobalIndex()}
         entryTitle={entry.site || 'Untitled Entry'}
       />
     </Card>

@@ -56,6 +56,14 @@ const PasswordHistoryDialog = ({
 
   const history = entryIndex !== null ? getPasswordHistory(entryIndex) : [];
 
+  // Debug information - remove this after fixing
+  console.log('PasswordHistoryDialog Debug:', {
+    entryIndex,
+    entryTitle,
+    historyLength: history.length,
+    history: history
+  });
+
   const handleClose = () => {
     setVisiblePasswords(new Set());
     setMenuAnchor(null);

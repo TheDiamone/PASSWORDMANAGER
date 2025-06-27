@@ -48,7 +48,7 @@ const PasswordListItem = ({
   isPasswordVisible, 
   onTogglePassword 
 }) => {
-  const { getCategoryById, getBreachStatus } = useVault();
+  const { getCategoryById, getBreachStatus, vault } = useVault();
   const { copyToClipboard } = useClipboard();
   const theme = useTheme();
   
@@ -60,6 +60,14 @@ const PasswordListItem = ({
   const breachStatus = getBreachStatus(entry.id);
   const passwordStrength = checkPasswordStrength(entry.pass || '');
   const hasHistory = entry.history && entry.history.length > 0;
+
+  // Find the global index for this entry when needed
+  const getGlobalIndex = () => {
+    if (entry && entry.id) {
+      return vault.findIndex(vaultEntry => vaultEntry.id === entry.id);
+    }
+    return -1;
+  };
 
   const getCategoryIcon = (categoryId) => {
     const iconProps = { 
@@ -374,7 +382,7 @@ const PasswordListItem = ({
       <PasswordHistoryDialog
         open={showHistoryDialog}
         onClose={() => setShowHistoryDialog(false)}
-        entryIndex={index}
+        entryIndex={getGlobalIndex()}
         entryTitle={entry.site || 'Untitled Entry'}
       />
     </Box>

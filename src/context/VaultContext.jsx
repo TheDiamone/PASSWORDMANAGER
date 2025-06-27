@@ -251,6 +251,12 @@ export const VaultProvider = ({ children }) => {
   };
 
   const getPasswordHistory = (entryIndex) => {
+    console.log('getPasswordHistory Debug:', {
+      entryIndex,
+      vaultLength: vault.length,
+      entry: entryIndex >= 0 && entryIndex < vault.length ? vault[entryIndex] : null
+    });
+    
     if (entryIndex >= 0 && entryIndex < vault.length) {
       const entry = vault[entryIndex];
       return entry.history || [];
