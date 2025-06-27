@@ -30,10 +30,12 @@ import {
   Security as SecurityIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  History as HistoryIcon
 } from '@mui/icons-material';
 import ActionButton from './ActionButton';
 import ActionDropdown from './ActionDropdown';
+import PasswordHistoryDialog from './PasswordHistoryDialog';
 import { useVault } from '../context/VaultContext';
 import { useClipboard } from '../hooks/useClipboard';
 import { checkPasswordStrength } from '../services/crypto';
@@ -52,10 +54,12 @@ const PasswordListItem = ({
   
   const [expanded, setExpanded] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
 
   const category = getCategoryById(entry.category);
   const breachStatus = getBreachStatus(entry.id);
   const passwordStrength = checkPasswordStrength(entry.pass || '');
+  const hasHistory = entry.history && entry.history.length > 0;
 
   const getCategoryIcon = (categoryId) => {
     const iconProps = { 
@@ -128,18 +132,26 @@ const PasswordListItem = ({
     }
   };
 
+  const handleViewHistory = () => {
+    setShowHistoryDialog(true);
+  };
+
   return (
-    <>
-      <ListItem
-        sx={{
+    <Box>
+      <ListItem 
+        sx={{ 
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          py: 2,
+          px: 2,
           border: 1,
           borderColor: 'divider',
           borderRadius: 2,
           mb: 1,
-          transition: 'all 0.2s ease-in-out',
+          bgcolor: 'background.paper',
           '&:hover': {
             borderColor: 'primary.main',
-            backgroundColor: 'action.hover'
+            boxShadow: 1
           }
         }}
       >
@@ -260,6 +272,14 @@ const PasswordListItem = ({
                 onClick: () => onTogglePassword(index),
                 shortcut: 'V'
               },
+              {
+                id: 'view-history',
+                label: 'Password History',
+                description: hasHistory ? `View ${entry.history.length} previous passwords` : 'View password history (none yet)',
+                icon: <HistoryIcon />,
+                onClick: handleViewHistory,
+                shortcut: 'H'
+              },
               { divider: true },
               {
                 id: 'delete',
@@ -349,7 +369,15 @@ const PasswordListItem = ({
           </Box>
         </Box>
       </Collapse>
-    </>
+
+      {/* Password History Dialog */}
+      <PasswordHistoryDialog
+        open={showHistoryDialog}
+        onClose={() => setShowHistoryDialog(false)}
+        entryIndex={index}
+        entryTitle={entry.site || 'Untitled Entry'}
+      />
+    </Box>
   );
 };
 

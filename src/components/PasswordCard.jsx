@@ -27,10 +27,12 @@ import {
   Security as SecurityIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  History as HistoryIcon
 } from '@mui/icons-material';
 import ActionButton from './ActionButton';
 import ActionDropdown from './ActionDropdown';
+import PasswordHistoryDialog from './PasswordHistoryDialog';
 import { useVault } from '../context/VaultContext';
 import { useClipboard } from '../hooks/useClipboard';
 import { checkPasswordStrength } from '../services/crypto';
@@ -43,15 +45,25 @@ const PasswordCard = ({
   isPasswordVisible, 
   onTogglePassword 
 }) => {
-  const { getCategoryById, getBreachStatus } = useVault();
+  const { getCategoryById, getBreachStatus, vault } = useVault();
   const { copyToClipboard } = useClipboard();
   const theme = useTheme();
   
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
 
   const category = getCategoryById(entry.category);
   const breachStatus = getBreachStatus(entry.id);
   const passwordStrength = checkPasswordStrength(entry.pass || '');
+  const hasHistory = entry.history && entry.history.length > 0;
+
+  // Find the global index for this entry when needed
+  const getGlobalIndex = () => {
+    if (entry && entry.id) {
+      return vault.findIndex(vaultEntry => vaultEntry.id === entry.id);
+    }
+    return -1;
+  };
 
   const getCategoryIcon = (categoryId) => {
     const iconProps = { 
@@ -122,6 +134,10 @@ const PasswordCard = ({
       setShowConfirmDelete(true);
       setTimeout(() => setShowConfirmDelete(false), 3000);
     }
+  };
+
+  const handleViewHistory = () => {
+    setShowHistoryDialog(true);
   };
 
   return (
@@ -336,6 +352,14 @@ const PasswordCard = ({
               onClick: () => onTogglePassword(index),
               shortcut: 'V'
             },
+            {
+              id: 'view-history',
+              label: 'Password History',
+              description: hasHistory ? `View ${entry.history.length} previous passwords` : 'View password history (none yet)',
+              icon: <HistoryIcon />,
+              onClick: handleViewHistory,
+              shortcut: 'H'
+            },
             { divider: true },
             {
               id: 'delete',
@@ -350,6 +374,14 @@ const PasswordCard = ({
           ]}
         />
       </CardActions>
+
+      {/* Password History Dialog */}
+      <PasswordHistoryDialog
+        open={showHistoryDialog}
+        onClose={() => setShowHistoryDialog(false)}
+        entryIndex={index}
+        entryTitle={entry.site || 'Untitled Entry'}
+      />
     </Card>
   );
 };

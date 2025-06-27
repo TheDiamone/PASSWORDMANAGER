@@ -25,9 +25,11 @@ import {
   Edit as EditIcon,
   Cancel as CancelIcon,
   AutoAwesome as GenerateIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  History as HistoryIcon
 } from '@mui/icons-material';
 import ActionButton from './ActionButton';
+import PasswordHistoryDialog from './PasswordHistoryDialog';
 import { useVault } from '../context/VaultContext';
 import { useClipboard } from '../hooks/useClipboard';
 import { usePasswordGenerator } from '../hooks/usePasswordGenerator';
@@ -50,6 +52,7 @@ const AddPasswordDialog = ({ open, onClose, editEntry = null, editIndex = null }
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -81,6 +84,7 @@ const AddPasswordDialog = ({ open, onClose, editEntry = null, editIndex = null }
       setTouched({});
       setShowPassword(false);
       setShowGenerator(false);
+      setShowHistoryDialog(false);
       setIsSubmitting(false);
     }
   }, [open, isEditMode, editEntry]);
@@ -230,13 +234,17 @@ const AddPasswordDialog = ({ open, onClose, editEntry = null, editIndex = null }
     setTouched({});
     setShowPassword(false);
     setShowGenerator(false);
+    setShowHistoryDialog(false);
     setIsSubmitting(false);
     onClose();
   };
 
   const handleUseGenerated = (password) => {
     handleFieldChange('pass', password);
-    setShowGenerator(false);
+  };
+
+  const handleViewHistory = () => {
+    setShowHistoryDialog(true);
   };
 
   const handleKeyDown = (event) => {
@@ -251,8 +259,9 @@ const AddPasswordDialog = ({ open, onClose, editEntry = null, editIndex = null }
     }
   };
 
-  const entryStrength = checkPasswordStrength(entry.pass);
+  const entryStrength = checkPasswordStrength(entry.pass || '');
   const hasErrors = Object.values(errors).some(error => error !== '');
+  const hasHistory = isEditMode && editEntry && editEntry.history && editEntry.history.length > 0;
 
   return (
     <Dialog 
@@ -388,6 +397,18 @@ const AddPasswordDialog = ({ open, onClose, editEntry = null, editIndex = null }
                >
                  Quick Generate
                </ActionButton>
+               {isEditMode && (
+                 <ActionButton 
+                   variant="outlined" 
+                   size="small"
+                   startIcon={<HistoryIcon />}
+                   onClick={handleViewHistory}
+                   disabled={isSubmitting}
+                   tooltip={hasHistory ? `View ${editEntry.history.length} previous passwords` : 'View password history (none yet)'}
+                 >
+                   History {hasHistory && `(${editEntry.history.length})`}
+                 </ActionButton>
+               )}
              </Box>
           </Box>
           
@@ -454,6 +475,16 @@ const AddPasswordDialog = ({ open, onClose, editEntry = null, editIndex = null }
            {isEditMode ? 'Update Entry' : 'Add Entry'}
          </ActionButton>
        </DialogActions>
+
+       {/* Password History Dialog */}
+       {isEditMode && (
+         <PasswordHistoryDialog
+           open={showHistoryDialog}
+           onClose={() => setShowHistoryDialog(false)}
+           entryIndex={editIndex}
+           entryTitle={entry.site || 'Untitled Entry'}
+         />
+       )}
     </Dialog>
   );
 };

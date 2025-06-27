@@ -56,10 +56,13 @@ export const VaultProvider = ({ children }) => {
       try {
         const key = await deriveKey(masterPassword);
         const data = await decryptVault(JSON.parse(vaultData), key);
-        // Ensure all entries have IDs
+        // Ensure all entries have IDs and new fields for backward compatibility
         const dataWithIds = data.map(entry => ({
           ...entry,
-          id: entry.id || `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          id: entry.id || `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          history: entry.history || [], // Initialize password history for existing entries
+          createdAt: entry.createdAt || new Date().toISOString(),
+          updatedAt: entry.updatedAt || new Date().toISOString()
         }));
         setVault(dataWithIds);
       } catch (error) {
@@ -88,7 +91,10 @@ export const VaultProvider = ({ children }) => {
     const safeEntry = { 
       ...entry, 
       tags: Array.isArray(entry.tags) ? entry.tags : [],
-      id: entry.id || `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      id: entry.id || `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      history: entry.history || [], // Initialize password history
+      createdAt: entry.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     const newVault = [...vault, safeEntry];
     return await saveVault(newVault);
@@ -96,7 +102,33 @@ export const VaultProvider = ({ children }) => {
 
   const updateEntry = async (index, updatedEntry) => {
     const newVault = [...vault];
-    newVault[index] = updatedEntry;
+    const currentEntry = newVault[index];
+    
+    // If password is changing, save the old password to history
+    if (currentEntry.pass && updatedEntry.pass && currentEntry.pass !== updatedEntry.pass) {
+      const historyEntry = {
+        password: currentEntry.pass,
+        timestamp: currentEntry.updatedAt || new Date().toISOString(),
+        id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      };
+      
+      // Ensure history array exists and add the old password
+      const currentHistory = currentEntry.history || [];
+      updatedEntry.history = [...currentHistory, historyEntry];
+    } else {
+      // Keep existing history if password isn't changing
+      updatedEntry.history = currentEntry.history || [];
+    }
+    
+    // Preserve essential properties and update with new values
+    newVault[index] = {
+      ...currentEntry, // Keep all existing properties
+      ...updatedEntry, // Overwrite with updated values
+      id: currentEntry.id, // Ensure ID is always preserved
+      createdAt: currentEntry.createdAt, // Preserve creation timestamp
+      updatedAt: new Date().toISOString() // Update modification timestamp
+    };
+    
     return await saveVault(newVault);
   };
 
@@ -184,6 +216,66 @@ export const VaultProvider = ({ children }) => {
     return breach && breach.found;
   });
 
+  const restorePasswordFromHistory = async (entryIndex, historyId) => {
+    const newVault = [...vault];
+    const currentEntry = newVault[entryIndex];
+    
+    if (!currentEntry.history) return false;
+    
+    // Find the history entry to restore
+    const historyEntry = currentEntry.history.find(h => h.id === historyId);
+    if (!historyEntry) return false;
+    
+    // Save current password to history before restoring
+    const currentPasswordHistory = {
+      password: currentEntry.pass,
+      timestamp: currentEntry.updatedAt || new Date().toISOString(),
+      id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    };
+    
+    // Remove the restored password from history and add current password
+    const updatedHistory = [
+      ...currentEntry.history.filter(h => h.id !== historyId),
+      currentPasswordHistory
+    ];
+    
+    // Update the entry with restored password
+    newVault[entryIndex] = {
+      ...currentEntry,
+      pass: historyEntry.password,
+      history: updatedHistory,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return await saveVault(newVault);
+  };
+
+  const getPasswordHistory = (entryIndex) => {
+    if (entryIndex >= 0 && entryIndex < vault.length) {
+      const entry = vault[entryIndex];
+      return entry.history || [];
+    }
+    return [];
+  };
+
+  const deletePasswordFromHistory = async (entryIndex, historyId) => {
+    const newVault = [...vault];
+    const currentEntry = newVault[entryIndex];
+    
+    if (!currentEntry.history) return false;
+    
+    // Remove the specified history entry
+    const updatedHistory = currentEntry.history.filter(h => h.id !== historyId);
+    
+    newVault[entryIndex] = {
+      ...currentEntry,
+      history: updatedHistory,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return await saveVault(newVault);
+  };
+
   const value = {
     // Vault data
     vault,
@@ -231,6 +323,11 @@ export const VaultProvider = ({ children }) => {
     addEntry,
     updateEntry,
     deleteEntry,
+
+    // Password history
+    restorePasswordFromHistory,
+    getPasswordHistory,
+    deletePasswordFromHistory,
   };
 
   return (
