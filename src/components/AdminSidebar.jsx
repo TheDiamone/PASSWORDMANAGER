@@ -15,7 +15,8 @@ import {
   Switch,
   FormControlLabel,
   Slider,
-  Paper
+  Paper,
+  Stack
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -44,6 +45,7 @@ import { useClipboard } from '../hooks/useClipboard';
 import TwoFactorSetupDialog from './TwoFactorSetupDialog';
 import BiometricSetupDialog from './BiometricSetupDialog';
 import ImportExportDialogs from './ImportExportDialogs';
+import ThemeToggle from './ThemeToggle';
 
 const AdminSidebar = ({ open, onClose }) => {
   const {
@@ -272,7 +274,7 @@ const AdminSidebar = ({ open, onClose }) => {
 
               <Divider />
 
-              {/* UI/Appearance Section */}
+              {/* UI Customization */}
               <ListItemButton onClick={() => toggleSection('ui')}>
                 <ListItemIcon>
                   <PaletteIcon color="primary" />
@@ -283,36 +285,40 @@ const AdminSidebar = ({ open, onClose }) => {
               
               <Collapse in={expandedSections.ui} timeout="auto" unmountOnExit>
                 <Box sx={{ pl: 2, pr: 2, pb: 1 }}>
-                  {/* Theme Toggle */}
+                  {/* Theme Controls */}
                   <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                      {darkMode ? <DarkModeIcon color="primary" fontSize="small" /> : <LightModeIcon color="primary" fontSize="small" />}
-                      <Typography variant="body2" fontWeight="medium">
-                        Theme
-                      </Typography>
-                    </Box>
+                    <Typography variant="body2" fontWeight="medium" gutterBottom>
+                      Theme Settings
+                    </Typography>
                     <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                      Current theme: {darkMode ? 'Dark Mode' : 'Light Mode'}
+                      Choose your preferred appearance
                     </Typography>
                     
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={darkMode}
-                          onChange={toggleTheme}
-                          color="primary"
-                        />
-                      }
-                      label={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <LightModeIcon fontSize="small" />
-                          <Typography variant="body2">Dark Mode</Typography>
-                          <DarkModeIcon fontSize="small" />
-                        </Box>
-                      }
-                      labelPlacement="start"
-                      sx={{ width: '100%', justifyContent: 'space-between', mx: 0 }}
-                    />
+                    <Stack spacing={2}>
+                      {/* Icon Toggle */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Quick Toggle</Typography>
+                        <ThemeToggle variant="icon" />
+                      </Box>
+                      
+                      {/* Button Toggle */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Button Style</Typography>
+                        <ThemeToggle variant="button" />
+                      </Box>
+                      
+                      {/* Switch Toggle */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Switch Style</Typography>
+                        <ThemeToggle variant="switch" />
+                      </Box>
+                      
+                      {/* Menu Toggle */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Full Options</Typography>
+                        <ThemeToggle variant="menu" />
+                      </Box>
+                    </Stack>
                   </Paper>
                 </Box>
               </Collapse>

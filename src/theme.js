@@ -105,6 +105,126 @@ const shadows = [
   '0px 24px 42px rgba(0, 0, 0, 0.08), 0px 22px 110px rgba(0, 0, 0, 0.12)'
 ];
 
+// Global CSS injection for data-theme support
+export const injectGlobalThemeStyles = () => {
+  if (typeof document === 'undefined') return;
+
+  const styleId = 'global-theme-styles';
+  let styleElement = document.getElementById(styleId);
+  
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = styleId;
+    document.head.appendChild(styleElement);
+  }
+
+  styleElement.textContent = `
+    /* Root variables for theme consistency */
+    [data-theme="light"] {
+      --scrollbar-track: #f1f3f4;
+      --scrollbar-thumb: #c1c8cd;
+      --scrollbar-thumb-hover: #a8b0b5;
+      --selection-bg: rgba(33, 150, 243, 0.15);
+      --backdrop-color: rgba(0, 0, 0, 0.5);
+      --focus-ring: rgba(33, 150, 243, 0.25);
+    }
+
+    [data-theme="dark"] {
+      --scrollbar-track: #2d3748;
+      --scrollbar-thumb: #4a5568;
+      --scrollbar-thumb-hover: #718096;
+      --selection-bg: rgba(66, 165, 245, 0.25);
+      --backdrop-color: rgba(0, 0, 0, 0.75);
+      --focus-ring: rgba(66, 165, 245, 0.4);
+    }
+
+    /* Smooth transitions for theme changes */
+    * {
+      transition: background-color 0.2s ease-in-out, 
+                  border-color 0.2s ease-in-out, 
+                  color 0.2s ease-in-out;
+    }
+
+    /* Custom scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 4px;
+      transition: background 0.2s ease-in-out;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--scrollbar-thumb-hover);
+    }
+
+    ::-webkit-scrollbar-corner {
+      background: var(--scrollbar-track);
+    }
+
+    /* Firefox scrollbar */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    /* Text selection */
+    ::selection {
+      background: var(--selection-bg);
+    }
+
+    /* Focus outline improvements */
+    *:focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    /* Backdrop for modals */
+    .MuiBackdrop-root {
+      background-color: var(--backdrop-color) !important;
+      backdrop-filter: blur(4px);
+    }
+
+    /* Reduce motion for users who prefer it */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Theme transition for entire page */
+    html {
+      transition: background-color 0.3s ease-in-out;
+    }
+
+    /* Enhanced autofill styling */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-text-fill-color: var(--text-primary);
+      -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+
+    /* Print styles */
+    @media print {
+      [data-theme="dark"] {
+        filter: invert(1) hue-rotate(180deg);
+      }
+    }
+  `;
+};
+
 // Base theme configuration
 const baseTheme = {
   typography: {
@@ -185,6 +305,23 @@ const baseTheme = {
     borderRadius: 12,
   },
   shadows,
+  transitions: {
+    duration: {
+      shortest: 150,
+      shorter: 200,
+      short: 250,
+      standard: 300,
+      complex: 375,
+      enteringScreen: 225,
+      leavingScreen: 195,
+    },
+    easing: {
+      easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      easeOut: 'cubic-bezier(0.0, 0, 0.2, 1)',
+      easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
+      sharp: 'cubic-bezier(0.4, 0, 0.6, 1)',
+    },
+  },
   components: {
     MuiButton: {
       styleOverrides: {
@@ -195,8 +332,13 @@ const baseTheme = {
           fontWeight: 500,
           textTransform: 'none',
           boxShadow: 'none',
+          transition: 'all 0.2s ease-in-out',
           '&:hover': {
             boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)',
+            transform: 'translateY(-1px)',
+          },
+          '&:active': {
+            transform: 'translateY(0px)',
           },
         },
         contained: {
@@ -217,6 +359,11 @@ const baseTheme = {
         root: {
           borderRadius: 16,
           border: '1px solid',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0px 8px 25px rgba(0, 0, 0, 0.12)',
+          },
         },
       },
     },
@@ -224,6 +371,7 @@ const baseTheme = {
       styleOverrides: {
         root: {
           borderRadius: 12,
+          transition: 'all 0.2s ease-in-out',
         },
         elevation1: {
           border: '1px solid',
@@ -235,6 +383,13 @@ const baseTheme = {
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 8,
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-1px)',
+            },
+            '&.Mui-focused': {
+              transform: 'translateY(-1px)',
+            },
           },
         },
       },
@@ -251,6 +406,10 @@ const baseTheme = {
         root: {
           borderRadius: 8,
           fontWeight: 500,
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'scale(1.05)',
+          },
         },
       },
     },
@@ -268,6 +427,20 @@ const baseTheme = {
           borderRadius: 8,
           fontSize: '0.75rem',
           fontWeight: 500,
+          backdropFilter: 'blur(10px)',
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'scale(1.1)',
+          },
+          '&:active': {
+            transform: 'scale(0.95)',
+          },
         },
       },
     },

@@ -263,7 +263,7 @@ const LoginScreen = () => {
       
       {/* Theme Toggle in top right corner */}
       <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1000 }}>
-        <ThemeToggle />
+        <ThemeToggle variant="menu" />
       </Box>
       
       {/* Main Content */}
